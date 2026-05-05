@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>東京 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --border: #e0dbd2;
+    --accent: #8b5e3c;
+    --accent2: #c4956a;
+    --text: #2a2218;
+    --text-muted: #999;
+    --visited: #eeebe6;
+    --visited-text: #ccc;
+    --header-h: 68px;
+    --tab-h: 44px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 100vh; }
+  header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 300; padding: 12px 16px 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+  .header-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
+  h1 { font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 0.04em; }
+  .date-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .stats { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .stats b { color: var(--accent); font-weight: 500; }
+  .tabs { position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--tab-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 299; display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 12px; font-weight: 700; padding: 0 14px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; height: 100%; transition: color 0.15s, border-color 0.15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  #panel-map { display: none; position: fixed; top: calc(var(--header-h) + var(--tab-h)); left: 0; right: 0; bottom: 0; }
+  #panel-map.active { display: block; }
+  #map { width: 100%; height: 100%; }
+  .content { display: none; margin-top: calc(var(--header-h) + var(--tab-h)); padding: 14px 16px 90px; }
+  .content.active { display: block; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .section-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .section-label:first-child { margin-top: 4px; }
+  .place-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 9px; position: relative; overflow: hidden; transition: border-color 0.15s; }
+  .place-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent2); opacity: 0; transition: opacity 0.15s; }
+  .place-card:hover { border-color: #c8c0b4; }
+  .place-card:hover::before { opacity: 1; }
+  .place-card.visited { background: var(--visited); border-color: var(--visited); opacity: 0.55; }
+  .place-card.visited::before { background: #bbb; opacity: 1; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+  .place-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .place-card.visited .place-name { color: var(--visited-text); text-decoration: line-through; }
+  .visit-btn { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; transition: all 0.15s; }
+  .visit-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .place-card.visited .visit-btn { background: #ccc; border-color: #ccc; color: white; }
+  .place-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 7px; }
+  .hours-pill { padding: 2px 7px; border-radius: 10px; font-size: 10px; background: var(--bg); border: 1px solid var(--border); }
+  .hours-closed { color: #d05030; background: #fff5f2; border-color: #f0c0b0; }
+  .hours-open { color: #3a7a50; background: #f2faf5; border-color: #a0d8b0; }
+  .place-note { font-size: 12px; color: #888; line-height: 1.55; margin-bottom: 9px; }
+  .tags { margin-bottom: 8px; }
+  .tag { display: inline-block; font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 20px; margin-right: 4px; margin-bottom: 3px; }
+  .tag-warning { background: #fff3e0; color: #b06020; border: 1px solid #f0d0a0; }
+  .tag-date { background: #e8f4f8; color: #2a7a9a; border: 1px solid #b0d8e8; }
+  .tag-free { background: #e8f5e8; color: #2a7a3a; border: 1px solid #a0d8a0; }
+  .card-actions { display: flex; gap: 7px; }
+  .btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; text-decoration: none; text-align: center; display: block; transition: all 0.15s; line-height: 1; }
+  .btn:hover { background: #f0f7f3; border-color: #7ab49a; color: #3a7a5a; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
+  .btn-primary:hover { background: #7a5030; border-color: #7a5030; color: white; }
+  .checklist-section { margin-bottom: 24px; }
+  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.12s; }
+  .check-item:hover { border-color: #c8c0b4; }
+  .check-item.checked { opacity: 0.45; background: var(--visited); }
+  .check-box { width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 0.12s; }
+  .check-item.checked .check-box { background: #aaa; border-color: #aaa; color: white; }
+  .check-text { font-size: 13px; color: var(--text); flex: 1; }
+  .check-item.checked .check-text { text-decoration: line-through; color: var(--text-muted); }
+  .leaflet-popup-content-wrapper { border-radius: 10px; padding: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); font-family: 'Zen Kaku Gothic New', sans-serif; border: 1px solid var(--border); }
+  .leaflet-popup-content { margin: 0; width: auto !important; }
+  .popup-inner { padding: 13px 15px; min-width: 190px; }
+  .popup-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  .popup-area { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+  .popup-hours { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.4; }
+  .popup-nav { display: block; width: 100%; background: var(--accent); color: white; border: none; border-radius: 6px; padding: 8px; font-size: 12px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; text-align: center; text-decoration: none; }
+  .marker-dot { width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row"><h1>東京 2025</h1><span class="date-badge">6/3 — 6/7</span></div>
+  <div class="stats">候選 <b id="total-count">0</b> 個 · 已去 <b id="visited-count">0</b> 個</div>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('map')">🗺 地圖</button>
+  <button class="tab" onclick="switchTab('all')">全部</button>
+  <button class="tab" onclick="switchTab('cafe')">☕ 咖啡廳</button>
+  <button class="tab" onclick="switchTab('stationery')">✏️ 文具</button>
+  <button class="tab" onclick="switchTab('shopping')">🛍 選品</button>
+  <button class="tab" onclick="switchTab('clothes')">👕 衣服</button>
+  <button class="tab" onclick="switchTab('electronics')">🔌 電器</button>
+  <button class="tab" onclick="switchTab('market')">🎪 市集</button>
+  <button class="tab" onclick="switchTab('checklist')">✅ 清單</button>
+</div>
+<div id="panel-map" class="active"><div id="map"></div></div>
+<div class="content" id="list-content">
+  <div id="panel-all" class="panel active"></div>
+  <div id="panel-cafe" class="panel"></div>
+  <div id="panel-stationery" class="panel"></div>
+  <div id="panel-shopping" class="panel"></div>
+  <div id="panel-clothes" class="panel"></div>
+  <div id="panel-electronics" class="panel"></div>
+  <div id="panel-market" class="panel"></div>
+  <div id="panel-checklist" class="panel">
+    <div class="checklist-section"><div class="section-label">行李 — 要帶的東西</div><div id="packing-list"></div></div>
+    <div class="checklist-section"><div class="section-label">行前準備事項</div><div id="prep-list"></div></div>
+  </div>
+</div>
+<script>
+const PLACES = [
+  { id:'ambre', name:"Café de l'Ambre", category:'cafe', area:'銀座', hours:'週二–日 11:00–20:00', closedDays:[1], note:'東京最老牌純咖啡店，必點 Queen Amber（蛋奶酒咖啡）。', tags:[{text:'週一休',type:'warning'}], lat:35.6679217, lng:139.7622983, mapQuery:"Cafe de l'Ambre Ginza Tokyo", emoji:'☕', color:'#d4956a' },
+  { id:'fuglen', name:'Fuglen Asakusa', category:'cafe', area:'淺草', hours:'每天 08:00–21:00（週二五至23:00）', closedDays:[], note:'北歐風格咖啡廳，8 點就開門，離蔵前走路可達。', tags:[], lat:35.7144526, lng:139.7939807, mapQuery:'Fuglen Asakusa Tokyo', emoji:'☕', color:'#d4956a' },
+  { id:'iff', name:'iff coffee roastery', category:'cafe', area:'南青山', hours:'週二–五 10:00–18:00', closedDays:[0,1,6], note:'來自台灣的精品咖啡，創意調飲很特別。', tags:[{text:'週一六日休',type:'warning'}], lat:35.6653988, lng:139.7201432, mapQuery:'iff coffee roastery aoyama Tokyo', emoji:'☕', color:'#d4956a' },
+  { id:'itoya', name:'銀座 Itoya', category:'stationery', area:'銀座', hours:'週一–六 10:00–20:00｜週日 10:00–19:00', closedDays:[], note:'東京最頂級文具選品，可在店內寫明信片直接寄出！', tags:[], lat:35.6731273, lng:139.7672138, mapQuery:'Ginza Itoya Tokyo', emoji:'✏️', color:'#6a9ac4' },
+  { id:'loft', name:'Loft 澀谷', category:'stationery', area:'澀谷', hours:'每天 11:00–21:00', closedDays:[], note:'B1 文具最齊，價格比 Itoya 親民，適合掃伴手禮。', tags:[], lat:35.6609346, lng:139.6997226, mapQuery:'Loft Shibuya Tokyo', emoji:'✏️', color:'#6a9ac4' },
+  { id:'kura', name:'蔵前', category:'shopping', area:'蔵前', hours:'各店不同，多數 11:00–18:00', closedDays:[], note:'文青選品小店聚集地。和淺草 Fuglen 走路可達。', tags:[], lat:35.7078, lng:139.7924, mapQuery:'蔵前 東京 選品', emoji:'🛍', color:'#7ac46a' },
+  { id:'yanaka', name:'谷中銀座', category:'shopping', area:'谷中', hours:'各店不同，多數 10:00–18:00', closedDays:[], note:'老街風格，手作雜貨、陶器小物，適合挖驚喜。', tags:[], lat:35.7268, lng:139.7688, mapQuery:'谷中銀座 東京', emoji:'🛍', color:'#7ac46a' },
+  { id:'catstreet', name:'原宿 Cat Street', category:'clothes', area:'原宿', hours:'各店不同，多數 11:00–20:00', closedDays:[], note:'獨立選品＋日系品牌集中，比竹下通安靜很多。', tags:[], lat:35.6679, lng:139.7074, mapQuery:'Cat Street Harajuku Tokyo', emoji:'👕', color:'#c46a9a' },
+  { id:'beams', name:'BEAMS 原宿旗艦', category:'clothes', area:'原宿', hours:'每天 11:00–20:00', closedDays:[], note:'原宿旗艦店品項最齊全，和 Cat Street 同一區。', tags:[], lat:35.6703, lng:139.7055, mapQuery:'BEAMS Harajuku Tokyo', emoji:'👕', color:'#c46a9a' },
+  { id:'freaks', name:'Freaks Store 澀谷', category:'clothes', area:'澀谷', hours:'每天 11:00–20:00', closedDays:[], note:'風格輕鬆有設計感，價格合理。', tags:[], lat:35.6614, lng:139.6983, mapQuery:'Freaks Store Shibuya Tokyo', emoji:'👕', color:'#c46a9a' },
+  { id:'rageblue', name:'Rage Blue 澀谷', category:'clothes', area:'澀谷', hours:'每天 11:00–21:00', closedDays:[], note:'日系選品風，澀谷和新宿都有。', tags:[], lat:35.6618, lng:139.6990, mapQuery:'Rageblue Shibuya Tokyo', emoji:'👕', color:'#c46a9a' },
+  { id:'yodobashi', name:'Yodobashi Akiba', category:'electronics', area:'秋葉原', hours:'每天 09:30–22:00', closedDays:[], note:'東京最大電器行，樓層分類清楚。離上野也近。', tags:[], lat:35.698917, lng:139.774798, mapQuery:'Yodobashi Akiba Tokyo', emoji:'🔌', color:'#c4c46a' },
+  { id:'odaiba-market', name:'台場創作者市集', category:'market', area:'台場', hours:'6/6–6/8，每天 10:00–18:00', closedDays:[], note:'旅遊期間剛好舉辦！免費入場，部分攤位需提前抽號。', tags:[{text:'6/6–6/8',type:'date'},{text:'免費',type:'free'}], lat:35.6254, lng:139.7750, mapQuery:'台場中央廣場 青海 東京', emoji:'🎪', color:'#9a6ac4' },
+  { id:'oi-market', name:'大井競馬場跳蚤市場', category:'market', area:'大井', hours:'幾乎每週末 09:00–14:30', closedDays:[], note:'約 350 個攤位，離台場不遠，記得早去。雨天可能取消。', tags:[{text:'6/7（六）or 6/8（日）',type:'date'}], lat:35.5967, lng:139.7378, mapQuery:'大井競馬場 フリーマーケット Tokyo', emoji:'🎪', color:'#9a6ac4' },
+];
+const PACKING = ['護照','Suica 卡（或備好錢買）','轉接頭（日本 A 型）','行動電源','相機','耳機','輕薄外套（6月偶有梅雨偏涼）','折疊傘','換洗衣物','常備藥','信用卡（Visa/Master）','日圓現金（部分小店只收現金）','空的行李空間（要帶東西回來）','環保袋'];
+const PREP = ['確認護照有效期限','購買來回機票','預訂住宿','iff coffee 確認當週營業（週二－週五）','台場創作者市集確認是否需要提前抽號','下載 Google Maps 東京離線地圖','確認 6/6–8 台場市集天氣（雨天可能取消）','通知信用卡公司出國','準備日文常用語備查'];
+let visitedPlaces=[],checkedPacking=[],checkedPrep=[];
+try{visitedPlaces=JSON.parse(localStorage.getItem('visited')||'[]');checkedPacking=JSON.parse(localStorage.getItem('checkedPacking')||'[]');checkedPrep=JSON.parse(localStorage.getItem('checkedPrep')||'[]');}catch(e){}
+function save(){try{localStorage.setItem('visited',JSON.stringify(visitedPlaces));localStorage.setItem('checkedPacking',JSON.stringify(checkedPacking));localStorage.setItem('checkedPrep',JSON.stringify(checkedPrep));}catch(e){}}
+function getHoursHTML(place){const today=new Date().getDay();if(place.closedDays.includes(today))return`<span class="hours-pill hours-closed">今日公休</span>`;return`<span class="hours-pill hours-open">${place.hours}</span>`;}
+function renderCard(place){const isVisited=visitedPlaces.includes(place.id);const navUrl=`https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;const mapsUrl=`https://maps.google.com/?q=${encodeURIComponent(place.name+' '+place.area+' Tokyo')}`;const tags=place.tags.map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');return`<div class="place-card ${isVisited?'visited':''}" id="card-${place.id}"><div class="card-top"><div class="place-name">${place.emoji} ${place.name}</div><button class="visit-btn" onclick="toggleVisited('${place.id}')">${isVisited?'✓':'○'}</button></div><div class="place-meta"><span>${place.area}</span>${getHoursHTML(place)}</div>${tags?`<div class="tags">${tags}</div>`:''}<div class="place-note">${place.note}</div><div class="card-actions"><a class="btn" href="${mapsUrl}" target="_blank">查看位置</a><a class="btn btn-primary" href="${navUrl}" target="_blank">→ 導航</a></div></div>`;}
+function renderCategory(cat){if(cat==='all'){const cats=['cafe','stationery','shopping','clothes','electronics','market'];const labels={cafe:'☕ 咖啡廳',stationery:'✏️ 文具選品',shopping:'🛍 逛街選品',clothes:'👕 買衣服',electronics:'🔌 電器行',market:'🎪 市集'};return cats.map(c=>`<div class="section-label">${labels[c]}</div>`+PLACES.filter(p=>p.category===c).map(renderCard).join('')).join('');}return PLACES.filter(p=>p.category===cat).map(renderCard).join('');}
+function renderChecklist(){document.getElementById('packing-list').innerHTML=PACKING.map((item,i)=>{const checked=checkedPacking.includes(i);return`<div class="check-item ${checked?'checked':''}" onclick="toggleCheck('packing',${i})"><div class="check-box">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;}).join('');document.getElementById('prep-list').innerHTML=PREP.map((item,i)=>{const checked=checkedPrep.includes(i);return`<div class="check-item ${checked?'checked':''}" onclick="toggleCheck('prep',${i})"><div class="check-box">${checked?'✓':''}</div><div class="check-text">${item}</div></div>`;}).join('');}
+function toggleVisited(id){visitedPlaces=visitedPlaces.includes(id)?visitedPlaces.filter(v=>v!==id):[...visitedPlaces,id];save();renderAll();}
+function toggleCheck(type,i){if(type==='packing')checkedPacking=checkedPacking.includes(i)?checkedPacking.filter(x=>x!==i):[...checkedPacking,i];else checkedPrep=checkedPrep.includes(i)?checkedPrep.filter(x=>x!==i):[...checkedPrep,i];save();renderChecklist();updateStats();}
+function updateStats(){document.getElementById('total-count').textContent=PLACES.length;document.getElementById('visited-count').textContent=visitedPlaces.length;}
+function renderAll(){['all','cafe','stationery','shopping','clothes','electronics','market'].forEach(cat=>{const el=document.getElementById(`panel-${cat}`);if(el)el.innerHTML=renderCategory(cat);});renderChecklist();updateStats();updateMapMarkers();}
+let map,markers={};
+function initMap(){map=L.map('map').setView([35.681,139.752],12);L.tileLayer('https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=f993171ee765416a813e90c107b2727d',{attribution:'© Thunderforest © OpenStreetMap',maxZoom:19}).addTo(map);PLACES.forEach(place=>addMarker(place));}
+function makeIcon(place,isVisited){const color=isVisited?'#ccc':place.color;const opacity=isVisited?0.45:1;const shortName=place.name.length>10?place.name.slice(0,10)+'…':place.name;return L.divIcon({className:'',html:`<div style="display:flex;flex-direction:column;align-items:center;opacity:${opacity}"><div class="marker-dot" style="background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0dbd2">${shortName}</div></div>`,iconSize:[90,52],iconAnchor:[45,15],popupAnchor:[0,-20]});}
+function addMarker(place){const isVisited=visitedPlaces.includes(place.id);const navUrl=`https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;const marker=L.marker([place.lat,place.lng],{icon:makeIcon(place,isVisited)}).addTo(map);marker.bindPopup(`<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,{maxWidth:220});markers[place.id]=marker;}
+function updateMapMarkers(){PLACES.forEach(place=>{const marker=markers[place.id];if(marker)marker.setIcon(makeIcon(place,visitedPlaces.includes(place.id)));});}
+const ALL_TABS=['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
+const LIST_TABS=ALL_TABS.slice(1);
+function switchTab(tab){document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ALL_TABS[i]===tab));const isMap=tab==='map';document.getElementById('panel-map').classList.toggle('active',isMap);document.getElementById('list-content').classList.toggle('active',!isMap);LIST_TABS.forEach(t=>{const el=document.getElementById(`panel-${t}`);if(el)el.classList.toggle('active',t===tab);});if(isMap&&map)setTimeout(()=>map.invalidateSize(),60);}
+renderAll();
+initMap();
+</script>
+</body>
+</html>
