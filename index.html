@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>東京 2025</title>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root {
     --bg: #f5f3ef; --surface: #ffffff; --border: #e0dbd2;
@@ -78,14 +76,15 @@
   .add-input::placeholder { color: var(--text-muted); }
   .add-btn { padding: 9px 14px; border-radius: 8px; border: 1px solid var(--accent2); background: var(--accent2); color: white; font-size: 13px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; white-space: nowrap; }
   .add-btn:hover { background: var(--accent); border-color: var(--accent); }
-  .leaflet-popup-content-wrapper { border-radius: 10px; padding: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); font-family: 'Zen Kaku Gothic New', sans-serif; border: 1px solid var(--border); }
-  .leaflet-popup-content { margin: 0; width: auto !important; }
-  .popup-inner { padding: 13px 15px; min-width: 190px; }
+  .popup-inner { padding: 13px 15px; min-width: 190px; font-family: 'Zen Kaku Gothic New', sans-serif; }
   .popup-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
   .popup-area { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
   .popup-hours { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.4; }
   .popup-nav { display: block; width: 100%; background: var(--accent); color: white; border: none; border-radius: 6px; padding: 8px; font-size: 12px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; text-align: center; text-decoration: none; }
-  .marker-dot { width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .gm-style .gm-style-iw-c { padding: 0 !important; border-radius: 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
+  .gm-style .gm-style-iw-d { overflow: hidden !important; }
+  .gm-style .gm-style-iw-tc::after { background: white; }
+  .gm-ui-hover-effect { top: 4px !important; right: 4px !important; }
 </style>
 </head>
 <body>
@@ -150,33 +149,38 @@ const PLACES = [
   { id:'oi-market', name:'大井競馬場跳蚤市場', category:'market', area:'大井', hours:'幾乎每週末 09:00–14:30', closedDays:[], note:'約 350 個攤位，離台場不遠，記得早去。雨天可能取消。', tags:[{text:'6/7（六）or 6/8（日）',type:'date'}], lat:35.5967, lng:139.7378, emoji:'🎪', color:'#9a6ac4' },
 ];
 
+const DEFAULT_PACKING = ['護照','Suica 卡（或備好錢買）','轉接頭（日本 A 型）','行動電源','相機','耳機','輕薄外套（6月偶有梅雨偏涼）','折疊傘','換洗衣物','常備藥','信用卡（Visa/Master）','日圓現金（部分小店只收現金）','空的行李空間（要帶東西回來）','環保袋'];
+const DEFAULT_PREP = ['確認護照有效期限','購買來回機票','預訂住宿','iff coffee 確認當週營業（週二－週五）','台場創作者市集確認是否需要提前抽號','下載 Google Maps 東京離線地圖','確認 6/6–8 台場市集天氣（雨天可能取消）','通知信用卡公司出國','準備日文常用語備查'];
+
 let visitedPlaces=[], packingItems=[], prepItems=[];
 try {
-  visitedPlaces=JSON.parse(localStorage.getItem('visited')||'[]');
-  packingItems=JSON.parse(localStorage.getItem('packingItems')||'null')??[];
-  prepItems=JSON.parse(localStorage.getItem('prepItems')||'null')??[];
-} catch(e) { packingItems=[]; prepItems=[]; }
+  visitedPlaces = JSON.parse(localStorage.getItem('visited') || '[]');
+  packingItems = JSON.parse(localStorage.getItem('packingItems') || 'null') ?? [];
+  prepItems = JSON.parse(localStorage.getItem('prepItems') || 'null') ?? [];
+} catch(e) {}
+if (!packingItems.length) packingItems = DEFAULT_PACKING.map(t=>({text:t,checked:false}));
+if (!prepItems.length)    prepItems   = DEFAULT_PREP.map(t=>({text:t,checked:false}));
 
 function save() {
   try {
-    localStorage.setItem('visited',JSON.stringify(visitedPlaces));
-    localStorage.setItem('packingItems',JSON.stringify(packingItems));
-    localStorage.setItem('prepItems',JSON.stringify(prepItems));
+    localStorage.setItem('visited', JSON.stringify(visitedPlaces));
+    localStorage.setItem('packingItems', JSON.stringify(packingItems));
+    localStorage.setItem('prepItems', JSON.stringify(prepItems));
   } catch(e) {}
 }
 
 function getHoursHTML(place) {
-  const today=new Date().getDay();
-  if(place.closedDays.includes(today)) return`<span class="hours-pill hours-closed">今日公休</span>`;
-  return`<span class="hours-pill hours-open">${place.hours}</span>`;
+  const today = new Date().getDay();
+  if (place.closedDays.includes(today)) return `<span class="hours-pill hours-closed">今日公休</span>`;
+  return `<span class="hours-pill hours-open">${place.hours}</span>`;
 }
 
 function renderCard(place) {
-  const isVisited=visitedPlaces.includes(place.id);
-  const navUrl=`https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
-  const mapsUrl=`https://maps.google.com/?q=${encodeURIComponent(place.name+' '+place.area+' Tokyo')}`;
-  const tags=place.tags.map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');
-  return`<div class="place-card ${isVisited?'visited':''}" id="card-${place.id}">
+  const isVisited = visitedPlaces.includes(place.id);
+  const navUrl = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
+  const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(place.name+' '+place.area+' Tokyo')}`;
+  const tags = place.tags.map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');
+  return `<div class="place-card ${isVisited?'visited':''}" id="card-${place.id}">
     <div class="card-top"><div class="place-name">${place.emoji} ${place.name}</div>
     <button class="visit-btn" onclick="toggleVisited('${place.id}')">${isVisited?'✓':'○'}</button></div>
     <div class="place-meta"><span>${place.area}</span>${getHoursHTML(place)}</div>
@@ -187,17 +191,17 @@ function renderCard(place) {
 }
 
 function renderCategory(cat) {
-  if(cat==='all'){
-    const cats=['cafe','stationery','shopping','clothes','electronics','market'];
-    const labels={cafe:'☕ 咖啡廳',stationery:'✏️ 文具選品',shopping:'🛍 逛街選品',clothes:'👕 買衣服',electronics:'🔌 電器行',market:'🎪 市集'};
+  if (cat==='all') {
+    const cats = ['cafe','stationery','shopping','clothes','electronics','market'];
+    const labels = {cafe:'☕ 咖啡廳',stationery:'✏️ 文具選品',shopping:'🛍 逛街選品',clothes:'👕 買衣服',electronics:'🔌 電器行',market:'🎪 市集'};
     return cats.map(c=>`<div class="section-label">${labels[c]}</div>`+PLACES.filter(p=>p.category===c).map(renderCard).join('')).join('');
   }
   return PLACES.filter(p=>p.category===cat).map(renderCard).join('');
 }
 
 function renderChecklist() {
-  const render=(items,type,containerId)=>{
-    document.getElementById(containerId).innerHTML=items.map((item,i)=>`
+  const render = (items, type, containerId) => {
+    document.getElementById(containerId).innerHTML = items.map((item,i)=>`
       <div class="check-item ${item.checked?'checked':''}">
         <div class="check-box" onclick="toggleCheck('${type}',${i})">${item.checked?'✓':''}</div>
         <input class="check-text" value="${item.text.replace(/"/g,'&quot;')}" onchange="editItem('${type}',${i},this.value)" ${item.checked?'disabled':''}>
@@ -208,84 +212,105 @@ function renderChecklist() {
   render(prepItems,'prep','prep-list');
 }
 
-function toggleCheck(type,i){
-  const arr=type==='packing'?packingItems:prepItems;
-  arr[i].checked=!arr[i].checked;
-  save();renderChecklist();
+function toggleCheck(type,i) {
+  const arr = type==='packing' ? packingItems : prepItems;
+  arr[i].checked = !arr[i].checked;
+  save(); renderChecklist();
 }
-function editItem(type,i,val){
-  const arr=type==='packing'?packingItems:prepItems;
-  arr[i].text=val; save();
+function editItem(type,i,val) {
+  const arr = type==='packing' ? packingItems : prepItems;
+  arr[i].text = val; save();
 }
-function deleteItem(type,i){
-  if(type==='packing')packingItems.splice(i,1);
+function deleteItem(type,i) {
+  if (type==='packing') packingItems.splice(i,1);
   else prepItems.splice(i,1);
-  save();renderChecklist();
+  save(); renderChecklist();
 }
-function addItem(type){
-  const input=document.getElementById(`${type}-input`);
-  const text=input.value.trim();
-  if(!text)return;
-  if(type==='packing')packingItems.push({text,checked:false});
+function addItem(type) {
+  const input = document.getElementById(`${type}-input`);
+  const text = input.value.trim();
+  if (!text) return;
+  if (type==='packing') packingItems.push({text,checked:false});
   else prepItems.push({text,checked:false});
-  input.value='';
-  save();renderChecklist();
+  input.value = '';
+  save(); renderChecklist();
 }
-function toggleVisited(id){
-  visitedPlaces=visitedPlaces.includes(id)?visitedPlaces.filter(v=>v!==id):[...visitedPlaces,id];
-  save();renderAll();
+function toggleVisited(id) {
+  visitedPlaces = visitedPlaces.includes(id) ? visitedPlaces.filter(v=>v!==id) : [...visitedPlaces,id];
+  save(); renderAll();
 }
-function updateStats(){
-  document.getElementById('total-count').textContent=PLACES.length;
-  document.getElementById('visited-count').textContent=visitedPlaces.length;
+function updateStats() {
+  document.getElementById('total-count').textContent = PLACES.length;
+  document.getElementById('visited-count').textContent = visitedPlaces.length;
 }
-function renderAll(){
+function renderAll() {
   ['all','cafe','stationery','shopping','clothes','electronics','market'].forEach(cat=>{
-    const el=document.getElementById(`panel-${cat}`);
-    if(el)el.innerHTML=renderCategory(cat);
+    const el = document.getElementById(`panel-${cat}`);
+    if (el) el.innerHTML = renderCategory(cat);
   });
-  renderChecklist();updateStats();updateMapMarkers();
+  renderChecklist(); updateStats(); updateMapMarkers();
 }
 
-let map,markers={};
-function initMap(){
-  map=L.map('map').setView([35.681,139.752],12);
-  L.tileLayer('https://{s}.tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=f993171ee765416a813e90c107b2727d',{
-    attribution:'© Thunderforest © OpenStreetMap',maxZoom:19
-  }).addTo(map);
-  PLACES.forEach(place=>addMarker(place));
+let map, markers = {}, openInfoWindow = null;
+
+function makeMarkerEl(place, isVisited) {
+  const color = isVisited ? '#ccc' : place.color;
+  const opacity = isVisited ? 0.45 : 1;
+  const shortName = place.name.length > 10 ? place.name.slice(0,10)+'…' : place.name;
+  const el = document.createElement('div');
+  el.style.cssText = `display:flex;flex-direction:column;align-items:center;opacity:${opacity};cursor:pointer`;
+  el.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;font-size:14px;background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0dbd2">${shortName}</div>`;
+  return el;
 }
-function makeIcon(place,isVisited){
-  const color=isVisited?'#ccc':place.color;
-  const opacity=isVisited?0.45:1;
-  const shortName=place.name.length>10?place.name.slice(0,10)+'…':place.name;
-  return L.divIcon({className:'',html:`<div style="display:flex;flex-direction:column;align-items:center;opacity:${opacity}"><div class="marker-dot" style="background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0dbd2">${shortName}</div></div>`,iconSize:[90,52],iconAnchor:[45,15],popupAnchor:[0,-20]});
+
+function addMarker(place) {
+  const navUrl = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
+  const marker = new google.maps.marker.AdvancedMarkerElement({
+    map,
+    position: { lat: place.lat, lng: place.lng },
+    content: makeMarkerEl(place, visitedPlaces.includes(place.id))
+  });
+  const infoWindow = new google.maps.InfoWindow({
+    content: `<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,
+    maxWidth: 220
+  });
+  marker.addListener('gmp-click', () => {
+    if (openInfoWindow) openInfoWindow.close();
+    infoWindow.open({ anchor: marker, map });
+    openInfoWindow = infoWindow;
+  });
+  markers[place.id] = { marker, infoWindow };
 }
-function addMarker(place){
-  const isVisited=visitedPlaces.includes(place.id);
-  const navUrl=`https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
-  const marker=L.marker([place.lat,place.lng],{icon:makeIcon(place,isVisited)}).addTo(map);
-  marker.bindPopup(`<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,{maxWidth:220});
-  markers[place.id]=marker;
-}
-function updateMapMarkers(){
-  PLACES.forEach(place=>{
-    const marker=markers[place.id];
-    if(marker)marker.setIcon(makeIcon(place,visitedPlaces.includes(place.id)));
+
+function updateMapMarkers() {
+  if (!map) return;
+  PLACES.forEach(place => {
+    const m = markers[place.id];
+    if (m) m.marker.content = makeMarkerEl(place, visitedPlaces.includes(place.id));
   });
 }
-const ALL_TABS=['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
-const LIST_TABS=ALL_TABS.slice(1);
-function switchTab(tab){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ALL_TABS[i]===tab));
-  const isMap=tab==='map';
-  document.getElementById('panel-map').classList.toggle('active',isMap);
-  document.getElementById('list-content').classList.toggle('active',!isMap);
-  LIST_TABS.forEach(t=>{const el=document.getElementById(`panel-${t}`);if(el)el.classList.toggle('active',t===tab);});
-  if(isMap&&map)setTimeout(()=>map.invalidateSize(),60);
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 35.681, lng: 139.752 },
+    zoom: 12,
+    mapId: 'DEMO_MAP_ID'
+  });
+  PLACES.forEach(addMarker);
 }
+
+const ALL_TABS = ['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
+const LIST_TABS = ALL_TABS.slice(1);
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ALL_TABS[i]===tab));
+  const isMap = tab==='map';
+  document.getElementById('panel-map').classList.toggle('active', isMap);
+  document.getElementById('list-content').classList.toggle('active', !isMap);
+  LIST_TABS.forEach(t=>{ const el=document.getElementById(`panel-${t}`); if(el) el.classList.toggle('active',t===tab); });
+}
+
 renderAll();
-initMap();
 </script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpZvQ-8RwCNSeRlWy5eoiJJMISwPkbG9M&libraries=marker&callback=initMap" async defer></script>
 </body>
 </html>
