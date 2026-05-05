@@ -463,13 +463,15 @@ function initMap(){
     if(e.placeId){
       e.stop();
       const svc=new google.maps.places.PlacesService(map);
-      svc.getDetails({placeId:e.placeId,fields:['name','geometry','vicinity']},(result,status)=>{
+      svc.getDetails({placeId:e.placeId,fields:['name','geometry','vicinity','opening_hours']},(result,status)=>{
         const ok=status===google.maps.places.PlacesServiceStatus.OK;
+        const{text,closedDays}=parseOpeningHours(ok?result.opening_hours?.weekday_text:null);
         openAddModal({
           name: ok?result.name:'',
           lat:  ok?result.geometry.location.lat():e.latLng.lat(),
           lng:  ok?result.geometry.location.lng():e.latLng.lng(),
-          area: ok?result.vicinity?.split(/[,，]/)[0].trim()||'':''
+          area: ok?result.vicinity?.split(/[,，]/)[0].trim()||'':'',
+          hours:text, closedDays,
         });
       });
     } else {
@@ -479,7 +481,33 @@ function initMap(){
 }
 
 // ── Add Place Modal ──
-let newPlaceLat=null,newPlaceLng=null,placesAC=null,selectedPlaceEmoji='📍',selectedCatEmoji='📂';
+let newPlaceLat=null,newPlaceLng=null,newPlaceClosedDays=[],placesAC=null,selectedPlaceEmoji='📍',selectedCatEmoji='📂';
+
+function parseOpeningHours(weekdayText){
+  if(!weekdayText||!weekdayText.length)return{text:'',closedDays:[]};
+  const dayJa={Monday:'一',Tuesday:'二',Wednesday:'三',Thursday:'四',Friday:'五',Saturday:'六',Sunday:'日'};
+  const dayJS={Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:0};
+  function conv(t){
+    return t.replace(/(\d+):(\d+)\s*(AM|PM)/g,(_,h,m,ap)=>{
+      let hr=parseInt(h);if(ap==='PM'&&hr!==12)hr+=12;if(ap==='AM'&&hr===12)hr=0;
+      return String(hr).padStart(2,'0')+':'+m;
+    }).replace(' – ','–');
+  }
+  const parsed=weekdayText.map(line=>{
+    const idx=line.indexOf(': ');const dayEn=line.slice(0,idx);const h=line.slice(idx+2);
+    return{ja:dayJa[dayEn]||dayEn,js:dayJS[dayEn]??-1,hours:h==='Closed'?'休':conv(h)};
+  });
+  const closedDays=parsed.filter(p=>p.hours==='休').map(p=>p.js).filter(d=>d>=0);
+  const unique=[...new Set(parsed.map(p=>p.hours))];
+  if(unique.length===1)return{text:unique[0]==='休'?'暫停營業':`每天 ${unique[0]}`,closedDays};
+  const groups=[];let i=0;
+  while(i<parsed.length){
+    let j=i;while(j+1<parsed.length&&parsed[j+1].hours===parsed[i].hours)j++;
+    groups.push((j>i?`${parsed[i].ja}–${parsed[j].ja}`:parsed[i].ja)+' '+parsed[i].hours);
+    i=j+1;
+  }
+  return{text:groups.join('｜'),closedDays};
+}
 
 function updateCategorySelect(){
   const sel=document.getElementById('new-place-category');
@@ -497,21 +525,24 @@ function openAddModal(prefill){
   document.getElementById('add-modal').classList.add('active');
   document.getElementById('new-place-search').value=prefill?.name||'';
   document.getElementById('new-place-area').value=prefill?.area||'';
-  document.getElementById('new-place-hours').value='';
+  document.getElementById('new-place-hours').value=prefill?.hours||'';
   document.getElementById('new-place-note').value='';
   document.getElementById('new-cat-box').classList.remove('show');
   document.getElementById('new-cat-name').value='';
-  newPlaceLat=prefill?.lat??null;newPlaceLng=prefill?.lng??null;
+  newPlaceLat=prefill?.lat??null;newPlaceLng=prefill?.lng??null;newPlaceClosedDays=prefill?.closedDays??[];
   updateCategorySelect();
   selectPlaceEmoji(document.querySelector('#place-emoji-row .emoji-opt'));
   selectCatEmoji(document.querySelector('#cat-emoji-row .emoji-opt'));
   if(!placesAC&&window.google&&google.maps.places){
-    placesAC=new google.maps.places.Autocomplete(document.getElementById('new-place-search'),{componentRestrictions:{country:'jp'},fields:['name','geometry','vicinity']});
+    placesAC=new google.maps.places.Autocomplete(document.getElementById('new-place-search'),{componentRestrictions:{country:'jp'},fields:['name','geometry','vicinity','opening_hours']});
     placesAC.addListener('place_changed',()=>{
       const p=placesAC.getPlace();if(!p.geometry)return;
       newPlaceLat=p.geometry.location.lat();newPlaceLng=p.geometry.location.lng();
       document.getElementById('new-place-search').value=p.name;
       if(p.vicinity){document.getElementById('new-place-area').value=p.vicinity.split(/[,，]/)[0].trim();}
+      const{text,closedDays}=parseOpeningHours(p.opening_hours?.weekday_text);
+      document.getElementById('new-place-hours').value=text;
+      newPlaceClosedDays=closedDays;
     });
   }
 }
@@ -544,7 +575,7 @@ function saveNewPlace(){
     note: document.getElementById('new-place-note').value.trim(),
     emoji:selectedPlaceEmoji, color:catDef?.color||'#999',
     lat:newPlaceLat, lng:newPlaceLng,
-    tags:[], closedDays:[], custom:true
+    tags:[], closedDays:newPlaceClosedDays, custom:true
   };
   customPlaces.push(place);
   save();
