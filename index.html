@@ -106,6 +106,12 @@
   .emoji-opt.selected{border-color:var(--accent);background:#f5ede6;}
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .pac-container{z-index:500!important;font-family:'Zen Kaku Gothic New',sans-serif!important;border-radius:8px!important;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin 1.1s linear infinite;display:inline-block;}
+  .upload-area{border:2px dashed var(--border);border-radius:12px;padding:36px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
+  .upload-area:hover{border-color:var(--accent2);background:#fdf9f5;}
+  .translate-result-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.9;white-space:pre-wrap;color:var(--text);}
+  .key-box{background:#fff8f0;border:1px solid #f0d8b8;border-radius:8px;padding:12px 14px;margin-bottom:14px;}
 </style>
 </head>
 <body>
@@ -143,6 +149,46 @@
         <button class="add-btn" onclick="addItem('prep')">+ 新增</button>
       </div>
     </div>
+  </div>
+  <div id="panel-translate" class="panel">
+      <div class="section-label" style="margin-top:4px">📷 拍照或上傳菜單圖片翻譯</div>
+      <div class="key-box" id="translate-key-box">
+        <div class="modal-label" style="margin-bottom:6px">OpenAI API Key</div>
+        <div style="display:flex;gap:8px">
+          <input class="add-input" id="openai-key-input" type="password" placeholder="sk-...">
+          <button class="add-btn" onclick="saveOpenAIKey()">儲存</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">金鑰只存在你的裝置，不會上傳</div>
+      </div>
+      <div class="upload-area" id="translate-upload-area" onclick="document.getElementById('menu-file-input').click()">
+        <div style="font-size:40px;margin-bottom:10px">🍱</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:4px">上傳菜單照片</div>
+        <div style="font-size:12px;color:var(--text-muted)">點選後可拍照或從相簿選取</div>
+        <input type="file" id="menu-file-input" accept="image/*" style="display:none" onchange="onMenuImageSelected(event)">
+      </div>
+      <div id="translate-preview" style="display:none;margin-top:14px">
+        <img id="translate-img" style="width:100%;border-radius:10px;border:1px solid var(--border);display:block">
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" onclick="clearTranslation()" style="flex:0.5">換一張</button>
+          <button class="btn btn-primary" id="translate-btn" onclick="translateMenu()">🔍 翻譯菜單</button>
+        </div>
+      </div>
+      <div id="translate-loading" style="display:none;text-align:center;padding:28px;color:var(--text-muted);font-size:13px">
+        <div class="spin" style="font-size:26px;margin-bottom:8px">⟳</div><br>AI 翻譯中…
+      </div>
+      <div id="translate-result" style="display:none;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="section-label" style="margin:0">翻譯結果</div>
+          <button class="btn" onclick="copyTranslation()" style="flex:0;padding:5px 10px;font-size:11px">複製</button>
+        </div>
+        <div class="translate-result-box" id="translate-output"></div>
+        <div id="translate-key-reset" style="text-align:right;margin-top:8px;display:none">
+          <button onclick="resetOpenAIKey()" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline">更換 API Key</button>
+        </div>
+      </div>
+      <div id="translate-key-reset-main" style="text-align:right;margin-top:10px;display:none">
+        <button onclick="resetOpenAIKey()" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline">更換 API Key</button>
+      </div>
   </div>
 </div>
 
@@ -287,6 +333,7 @@ function buildTabDefs() {
     ...BASE_CATS.map(c=>({id:c.id, label:c.label})),
     ...customCategories.map(c=>({id:c.id, label:`${c.emoji} ${c.name}`})),
     {id:'checklist', label:'✅ 清單'},
+    {id:'translate', label:'🍽 菜單翻譯'},
   ];
 }
 function renderTabs() {
@@ -506,7 +553,99 @@ function saveNewPlace(){
   closeAddModal();
 }
 
+// ── Menu Translation ──
+let menuImageDataUrl=null;
+
+function initTranslate(){
+  const hasKey=!!localStorage.getItem('openaiKey');
+  document.getElementById('translate-key-box').style.display=hasKey?'none':'block';
+  document.getElementById('translate-key-reset-main').style.display=hasKey?'block':'none';
+}
+function saveOpenAIKey(){
+  const k=document.getElementById('openai-key-input').value.trim();
+  if(!k)return;
+  localStorage.setItem('openaiKey',k);
+  initTranslate();
+}
+function resetOpenAIKey(){
+  localStorage.removeItem('openaiKey');
+  document.getElementById('openai-key-input').value='';
+  initTranslate();
+}
+function onMenuImageSelected(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    menuImageDataUrl=ev.target.result;
+    document.getElementById('translate-img').src=menuImageDataUrl;
+    document.getElementById('translate-upload-area').style.display='none';
+    document.getElementById('translate-preview').style.display='block';
+    document.getElementById('translate-result').style.display='none';
+    document.getElementById('translate-loading').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+function clearTranslation(){
+  menuImageDataUrl=null;
+  document.getElementById('menu-file-input').value='';
+  document.getElementById('translate-upload-area').style.display='block';
+  document.getElementById('translate-preview').style.display='none';
+  document.getElementById('translate-result').style.display='none';
+  document.getElementById('translate-loading').style.display='none';
+}
+function compressImage(dataUrl){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxW=1600,scale=Math.min(1,maxW/img.width);
+      const c=document.createElement('canvas');
+      c.width=img.width*scale;c.height=img.height*scale;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      resolve(c.toDataURL('image/jpeg',0.88));
+    };
+    img.src=dataUrl;
+  });
+}
+async function translateMenu(){
+  const key=localStorage.getItem('openaiKey');
+  if(!key){document.getElementById('translate-key-box').style.display='block';alert('請先輸入 OpenAI API Key');return;}
+  if(!menuImageDataUrl)return;
+  document.getElementById('translate-loading').style.display='block';
+  document.getElementById('translate-result').style.display='none';
+  document.getElementById('translate-btn').disabled=true;
+  try{
+    const img=await compressImage(menuImageDataUrl);
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+      body:JSON.stringify({
+        model:'gpt-4o-mini',
+        messages:[{role:'user',content:[
+          {type:'image_url',image_url:{url:img,detail:'auto'}},
+          {type:'text',text:'這是日本餐廳的菜單照片。請翻譯成繁體中文，格式：每道菜一行，「日文原文 → 中文（簡短說明食材或口感）」。若菜單有分類（前菜、主菜、甜點等）請保留分類標題。價格若有請一併列出。只輸出翻譯，不需其他說明。'}
+        ]}],
+        max_tokens:1800
+      })
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    document.getElementById('translate-output').textContent=data.choices[0].message.content;
+    document.getElementById('translate-result').style.display='block';
+    document.getElementById('translate-key-reset').style.display='block';
+  }catch(err){
+    alert('翻譯失敗：'+err.message);
+  }finally{
+    document.getElementById('translate-loading').style.display='none';
+    document.getElementById('translate-btn').disabled=false;
+  }
+}
+function copyTranslation(){
+  const text=document.getElementById('translate-output').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('已複製！')).catch(()=>alert('複製失敗，請手動選取'));
+}
+
 renderAll();
+initTranslate();
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpZvQ-8RwCNSeRlWy5eoiJJMISwPkbG9M&libraries=marker,places&callback=initMap" async defer></script>
 </body>
