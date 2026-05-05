@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>東京 2025</title>
+<title>東京 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -16,8 +16,10 @@
   body { background: var(--bg); color: var(--text); font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 100vh; }
   header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 300; padding: 12px 16px 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
   .header-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
-  h1 { font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 0.04em; }
-  .date-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  h1 { font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 0.04em; outline: none; min-width: 60px; }
+  h1:focus { border-bottom: 1.5px solid var(--accent2); }
+  .date-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); outline: none; min-width: 40px; }
+  .date-badge:focus { border-bottom: 1px solid var(--accent2); }
   .stats { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
   .stats b { color: var(--accent); font-weight: 500; }
   .tabs { position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--tab-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 299; display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -60,6 +62,8 @@
   .btn:hover { background: #f0f7f3; border-color: #7ab49a; color: #3a7a5a; }
   .btn-primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
   .btn-primary:hover { background: #7a5030; border-color: #7a5030; color: white; }
+  .btn-danger { background: transparent; border-color: #f0c0b0; color: #d05030; margin-top: 7px; }
+  .btn-danger:hover { background: #fff5f2; border-color: #d05030; color: #d05030; }
   .checklist-section { margin-bottom: 24px; }
   .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; transition: all 0.12s; }
   .check-item:hover { border-color: #c8c0b4; }
@@ -76,6 +80,7 @@
   .add-input::placeholder { color: var(--text-muted); }
   .add-btn { padding: 9px 14px; border-radius: 8px; border: 1px solid var(--accent2); background: var(--accent2); color: white; font-size: 13px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; white-space: nowrap; }
   .add-btn:hover { background: var(--accent); border-color: var(--accent); }
+  /* Google Maps popup */
   .popup-inner { padding: 13px 15px; min-width: 190px; font-family: 'Zen Kaku Gothic New', sans-serif; }
   .popup-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
   .popup-area { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
@@ -83,13 +88,33 @@
   .popup-nav { display: block; width: 100%; background: var(--accent); color: white; border: none; border-radius: 6px; padding: 8px; font-size: 12px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; text-align: center; text-decoration: none; }
   .gm-style .gm-style-iw-c { padding: 0 !important; border-radius: 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
   .gm-style .gm-style-iw-d { overflow: hidden !important; }
-  .gm-style .gm-style-iw-tc::after { background: white; }
   .gm-ui-hover-effect { top: 4px !important; right: 4px !important; }
+  /* FAB */
+  .fab { position: fixed; bottom: 24px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.22); z-index: 250; display: flex; align-items: center; justify-content: center; transition: background 0.15s; line-height: 1; }
+  .fab:hover { background: #7a5030; }
+  /* Add place modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 400; align-items: flex-end; }
+  .modal-overlay.active { display: flex; }
+  .modal-sheet { background: var(--surface); border-radius: 18px 18px 0 0; padding: 20px 16px 40px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; font-weight: 900; color: var(--accent); margin-bottom: 16px; }
+  .modal-field { margin-bottom: 12px; }
+  .modal-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+  .modal-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: 'Zen Kaku Gothic New', sans-serif; outline: none; }
+  .modal-input:focus { border-color: var(--accent2); }
+  .modal-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: 'Zen Kaku Gothic New', sans-serif; outline: none; appearance: none; }
+  .emoji-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .emoji-opt { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+  .emoji-opt.selected { border-color: var(--accent); background: #f5ede6; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .pac-container { z-index: 500 !important; font-family: 'Zen Kaku Gothic New', sans-serif !important; border-radius: 8px !important; }
 </style>
 </head>
 <body>
 <header>
-  <div class="header-row"><h1>東京 2025</h1><span class="date-badge">6/3 — 6/7</span></div>
+  <div class="header-row">
+    <h1 id="trip-title" contenteditable="true" spellcheck="false">東京 2026</h1>
+    <span class="date-badge" id="trip-date" contenteditable="true" spellcheck="false">6/3 — 6/7</span>
+  </div>
   <div class="stats">候選 <b id="total-count">0</b> 個 · 已去 <b id="visited-count">0</b> 個</div>
 </header>
 <div class="tabs">
@@ -131,6 +156,65 @@
     </div>
   </div>
 </div>
+
+<!-- Floating Add Button -->
+<button class="fab" onclick="openAddModal()">＋</button>
+
+<!-- Add Place Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">＋ 新增景點</div>
+    <div class="modal-field">
+      <div class="modal-label">搜尋地點</div>
+      <input class="modal-input" id="new-place-search" placeholder="輸入店名或地址..." autocomplete="off">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">分類</div>
+      <select class="modal-select" id="new-place-category">
+        <option value="cafe">☕ 咖啡廳</option>
+        <option value="stationery">✏️ 文具</option>
+        <option value="shopping">🛍 選品</option>
+        <option value="clothes">👕 衣服</option>
+        <option value="electronics">🔌 電器</option>
+        <option value="market">🎪 市集</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">地區</div>
+      <input class="modal-input" id="new-place-area" placeholder="例：澀谷、銀座">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">營業時間</div>
+      <input class="modal-input" id="new-place-hours" placeholder="例：每天 11:00–20:00">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">備註</div>
+      <input class="modal-input" id="new-place-note" placeholder="想記錄的事...">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">圖示</div>
+      <div class="emoji-row" id="emoji-row">
+        <div class="emoji-opt selected" data-emoji="📍" onclick="selectEmoji(this)">📍</div>
+        <div class="emoji-opt" data-emoji="☕" onclick="selectEmoji(this)">☕</div>
+        <div class="emoji-opt" data-emoji="🍜" onclick="selectEmoji(this)">🍜</div>
+        <div class="emoji-opt" data-emoji="🍣" onclick="selectEmoji(this)">🍣</div>
+        <div class="emoji-opt" data-emoji="🛍" onclick="selectEmoji(this)">🛍</div>
+        <div class="emoji-opt" data-emoji="👕" onclick="selectEmoji(this)">👕</div>
+        <div class="emoji-opt" data-emoji="✏️" onclick="selectEmoji(this)">✏️</div>
+        <div class="emoji-opt" data-emoji="🎪" onclick="selectEmoji(this)">🎪</div>
+        <div class="emoji-opt" data-emoji="🏛" onclick="selectEmoji(this)">🏛</div>
+        <div class="emoji-opt" data-emoji="🌸" onclick="selectEmoji(this)">🌸</div>
+        <div class="emoji-opt" data-emoji="🎮" onclick="selectEmoji(this)">🎮</div>
+        <div class="emoji-opt" data-emoji="📚" onclick="selectEmoji(this)">📚</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddModal()" style="flex:0.6">取消</button>
+      <button class="btn btn-primary" onclick="saveNewPlace()">儲存景點</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const PLACES = [
   { id:'ambre', name:"Café de l'Ambre", category:'cafe', area:'銀座', hours:'週二–日 11:00–20:00', closedDays:[1], note:'東京最老牌純咖啡店，必點 Queen Amber（蛋奶酒咖啡）。', tags:[{text:'週一休',type:'warning'}], lat:35.6679217, lng:139.7622983, emoji:'☕', color:'#d4956a' },
@@ -149,59 +233,76 @@ const PLACES = [
   { id:'oi-market', name:'大井競馬場跳蚤市場', category:'market', area:'大井', hours:'幾乎每週末 09:00–14:30', closedDays:[], note:'約 350 個攤位，離台場不遠，記得早去。雨天可能取消。', tags:[{text:'6/7（六）or 6/8（日）',type:'date'}], lat:35.5967, lng:139.7378, emoji:'🎪', color:'#9a6ac4' },
 ];
 
+const CATEGORY_COLORS = { cafe:'#d4956a', stationery:'#6a9ac4', shopping:'#7ac46a', clothes:'#c46a9a', electronics:'#c4c46a', market:'#9a6ac4' };
+
 const DEFAULT_PACKING = ['護照','Suica 卡（或備好錢買）','轉接頭（日本 A 型）','行動電源','相機','耳機','輕薄外套（6月偶有梅雨偏涼）','折疊傘','換洗衣物','常備藥','信用卡（Visa/Master）','日圓現金（部分小店只收現金）','空的行李空間（要帶東西回來）','環保袋'];
 const DEFAULT_PREP = ['確認護照有效期限','購買來回機票','預訂住宿','iff coffee 確認當週營業（週二－週五）','台場創作者市集確認是否需要提前抽號','下載 Google Maps 東京離線地圖','確認 6/6–8 台場市集天氣（雨天可能取消）','通知信用卡公司出國','準備日文常用語備查'];
 
-let visitedPlaces=[], packingItems=[], prepItems=[];
+let visitedPlaces=[], packingItems=[], prepItems=[], customPlaces=[];
 try {
-  visitedPlaces = JSON.parse(localStorage.getItem('visited') || '[]');
-  packingItems = JSON.parse(localStorage.getItem('packingItems') || 'null') ?? [];
-  prepItems = JSON.parse(localStorage.getItem('prepItems') || 'null') ?? [];
+  visitedPlaces  = JSON.parse(localStorage.getItem('visited')       || '[]');
+  packingItems   = JSON.parse(localStorage.getItem('packingItems')  || 'null') ?? [];
+  prepItems      = JSON.parse(localStorage.getItem('prepItems')     || 'null') ?? [];
+  customPlaces   = JSON.parse(localStorage.getItem('customPlaces')  || '[]');
 } catch(e) {}
 if (!packingItems.length) packingItems = DEFAULT_PACKING.map(t=>({text:t,checked:false}));
 if (!prepItems.length)    prepItems   = DEFAULT_PREP.map(t=>({text:t,checked:false}));
 
+// Editable title
+const titleEl = document.getElementById('trip-title');
+const dateEl  = document.getElementById('trip-date');
+titleEl.textContent = localStorage.getItem('tripTitle') || '東京 2026';
+dateEl.textContent  = localStorage.getItem('tripDate')  || '6/3 — 6/7';
+titleEl.addEventListener('blur', ()=>localStorage.setItem('tripTitle', titleEl.textContent));
+dateEl.addEventListener('blur',  ()=>localStorage.setItem('tripDate',  dateEl.textContent));
+
 function save() {
   try {
-    localStorage.setItem('visited', JSON.stringify(visitedPlaces));
+    localStorage.setItem('visited',      JSON.stringify(visitedPlaces));
     localStorage.setItem('packingItems', JSON.stringify(packingItems));
-    localStorage.setItem('prepItems', JSON.stringify(prepItems));
+    localStorage.setItem('prepItems',    JSON.stringify(prepItems));
+    localStorage.setItem('customPlaces', JSON.stringify(customPlaces));
   } catch(e) {}
 }
 
+function getAllPlaces() { return [...PLACES, ...customPlaces]; }
+
 function getHoursHTML(place) {
   const today = new Date().getDay();
-  if (place.closedDays.includes(today)) return `<span class="hours-pill hours-closed">今日公休</span>`;
-  return `<span class="hours-pill hours-open">${place.hours}</span>`;
+  if (place.closedDays && place.closedDays.includes(today)) return `<span class="hours-pill hours-closed">今日公休</span>`;
+  return `<span class="hours-pill hours-open">${place.hours || '請確認營業時間'}</span>`;
 }
 
 function renderCard(place) {
   const isVisited = visitedPlaces.includes(place.id);
-  const navUrl = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
+  const navUrl  = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
   const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(place.name+' '+place.area+' Tokyo')}`;
-  const tags = place.tags.map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');
+  const tags = (place.tags||[]).map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');
+  const deleteRow = place.custom ? `<button class="btn btn-danger" onclick="deleteCustomPlace('${place.id}')">✕ 移除這個景點</button>` : '';
   return `<div class="place-card ${isVisited?'visited':''}" id="card-${place.id}">
     <div class="card-top"><div class="place-name">${place.emoji} ${place.name}</div>
     <button class="visit-btn" onclick="toggleVisited('${place.id}')">${isVisited?'✓':'○'}</button></div>
     <div class="place-meta"><span>${place.area}</span>${getHoursHTML(place)}</div>
     ${tags?`<div class="tags">${tags}</div>`:''}
-    <div class="place-note">${place.note}</div>
+    ${place.note?`<div class="place-note">${place.note}</div>`:''}
     <div class="card-actions"><a class="btn" href="${mapsUrl}" target="_blank">查看位置</a><a class="btn btn-primary" href="${navUrl}" target="_blank">→ 導航</a></div>
+    ${deleteRow}
   </div>`;
 }
 
 function renderCategory(cat) {
+  const all = getAllPlaces();
   if (cat==='all') {
     const cats = ['cafe','stationery','shopping','clothes','electronics','market'];
     const labels = {cafe:'☕ 咖啡廳',stationery:'✏️ 文具選品',shopping:'🛍 逛街選品',clothes:'👕 買衣服',electronics:'🔌 電器行',market:'🎪 市集'};
-    return cats.map(c=>`<div class="section-label">${labels[c]}</div>`+PLACES.filter(p=>p.category===c).map(renderCard).join('')).join('');
+    return cats.map(c=>`<div class="section-label">${labels[c]}</div>`+all.filter(p=>p.category===c).map(renderCard).join('')).join('');
   }
-  return PLACES.filter(p=>p.category===cat).map(renderCard).join('');
+  return all.filter(p=>p.category===cat).map(renderCard).join('');
 }
 
 function renderChecklist() {
-  const render = (items, type, containerId) => {
-    document.getElementById(containerId).innerHTML = items.map((item,i)=>`
+  const render = (items,type,id) => {
+    document.getElementById(id).innerHTML = items.map((item,i)=>`
       <div class="check-item ${item.checked?'checked':''}">
         <div class="check-box" onclick="toggleCheck('${type}',${i})">${item.checked?'✓':''}</div>
         <input class="check-text" value="${item.text.replace(/"/g,'&quot;')}" onchange="editItem('${type}',${i},this.value)" ${item.checked?'disabled':''}>
@@ -212,51 +313,31 @@ function renderChecklist() {
   render(prepItems,'prep','prep-list');
 }
 
-function toggleCheck(type,i) {
-  const arr = type==='packing' ? packingItems : prepItems;
-  arr[i].checked = !arr[i].checked;
-  save(); renderChecklist();
-}
-function editItem(type,i,val) {
-  const arr = type==='packing' ? packingItems : prepItems;
-  arr[i].text = val; save();
-}
-function deleteItem(type,i) {
-  if (type==='packing') packingItems.splice(i,1);
-  else prepItems.splice(i,1);
-  save(); renderChecklist();
-}
-function addItem(type) {
-  const input = document.getElementById(`${type}-input`);
-  const text = input.value.trim();
-  if (!text) return;
-  if (type==='packing') packingItems.push({text,checked:false});
-  else prepItems.push({text,checked:false});
-  input.value = '';
-  save(); renderChecklist();
-}
-function toggleVisited(id) {
-  visitedPlaces = visitedPlaces.includes(id) ? visitedPlaces.filter(v=>v!==id) : [...visitedPlaces,id];
-  save(); renderAll();
-}
+function toggleCheck(type,i){ const a=type==='packing'?packingItems:prepItems; a[i].checked=!a[i].checked; save();renderChecklist(); }
+function editItem(type,i,v){ const a=type==='packing'?packingItems:prepItems; a[i].text=v; save(); }
+function deleteItem(type,i){ if(type==='packing')packingItems.splice(i,1); else prepItems.splice(i,1); save();renderChecklist(); }
+function addItem(type){ const inp=document.getElementById(`${type}-input`); const t=inp.value.trim(); if(!t)return; if(type==='packing')packingItems.push({text:t,checked:false}); else prepItems.push({text:t,checked:false}); inp.value=''; save();renderChecklist(); }
+function toggleVisited(id){ visitedPlaces=visitedPlaces.includes(id)?visitedPlaces.filter(v=>v!==id):[...visitedPlaces,id]; save();renderAll(); }
+function deleteCustomPlace(id){ customPlaces=customPlaces.filter(p=>p.id!==id); save(); const m=markers[id]; if(m){m.marker.map=null;} delete markers[id]; renderAll(); }
+
 function updateStats() {
-  document.getElementById('total-count').textContent = PLACES.length;
+  document.getElementById('total-count').textContent = getAllPlaces().length;
   document.getElementById('visited-count').textContent = visitedPlaces.length;
 }
 function renderAll() {
   ['all','cafe','stationery','shopping','clothes','electronics','market'].forEach(cat=>{
-    const el = document.getElementById(`panel-${cat}`);
-    if (el) el.innerHTML = renderCategory(cat);
+    const el=document.getElementById(`panel-${cat}`); if(el) el.innerHTML=renderCategory(cat);
   });
   renderChecklist(); updateStats(); updateMapMarkers();
 }
 
-let map, markers = {}, openInfoWindow = null;
+// ── Google Maps ──
+let map, markers={}, openInfoWindow=null;
 
 function makeMarkerEl(place, isVisited) {
-  const color = isVisited ? '#ccc' : place.color;
-  const opacity = isVisited ? 0.45 : 1;
-  const shortName = place.name.length > 10 ? place.name.slice(0,10)+'…' : place.name;
+  const color = isVisited?'#ccc':place.color;
+  const opacity = isVisited?0.45:1;
+  const shortName = place.name.length>10?place.name.slice(0,10)+'…':place.name;
   const el = document.createElement('div');
   el.style.cssText = `display:flex;flex-direction:column;align-items:center;opacity:${opacity};cursor:pointer`;
   el.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;font-size:14px;background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0dbd2">${shortName}</div>`;
@@ -266,51 +347,100 @@ function makeMarkerEl(place, isVisited) {
 function addMarker(place) {
   const navUrl = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
   const marker = new google.maps.marker.AdvancedMarkerElement({
-    map,
-    position: { lat: place.lat, lng: place.lng },
+    map, position:{lat:place.lat,lng:place.lng},
     content: makeMarkerEl(place, visitedPlaces.includes(place.id))
   });
   const infoWindow = new google.maps.InfoWindow({
-    content: `<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,
-    maxWidth: 220
+    content:`<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours||''}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,
+    maxWidth:220
   });
-  marker.addListener('gmp-click', () => {
-    if (openInfoWindow) openInfoWindow.close();
-    infoWindow.open({ anchor: marker, map });
-    openInfoWindow = infoWindow;
-  });
-  markers[place.id] = { marker, infoWindow };
+  marker.addListener('gmp-click', ()=>{ if(openInfoWindow)openInfoWindow.close(); infoWindow.open({anchor:marker,map}); openInfoWindow=infoWindow; });
+  markers[place.id]={marker,infoWindow};
 }
 
 function updateMapMarkers() {
   if (!map) return;
-  PLACES.forEach(place => {
-    const m = markers[place.id];
-    if (m) m.marker.content = makeMarkerEl(place, visitedPlaces.includes(place.id));
-  });
+  getAllPlaces().forEach(place=>{ const m=markers[place.id]; if(m) m.marker.content=makeMarkerEl(place,visitedPlaces.includes(place.id)); });
 }
 
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: 35.681, lng: 139.752 },
-    zoom: 12,
-    mapId: 'DEMO_MAP_ID'
+    center:{lat:35.681,lng:139.752}, zoom:12, mapId:'DEMO_MAP_ID'
   });
-  PLACES.forEach(addMarker);
+  getAllPlaces().forEach(addMarker);
 }
 
-const ALL_TABS = ['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
-const LIST_TABS = ALL_TABS.slice(1);
+// ── Add Place Modal ──
+let newPlaceLat=null, newPlaceLng=null, placesAC=null, selectedEmoji='📍';
+
+function openAddModal() {
+  document.getElementById('add-modal').classList.add('active');
+  document.getElementById('new-place-search').value='';
+  document.getElementById('new-place-area').value='';
+  document.getElementById('new-place-hours').value='';
+  document.getElementById('new-place-note').value='';
+  newPlaceLat=null; newPlaceLng=null;
+  selectEmoji(document.querySelector('.emoji-opt'));
+  if (!placesAC && window.google && google.maps.places) {
+    placesAC = new google.maps.places.Autocomplete(
+      document.getElementById('new-place-search'),
+      { componentRestrictions:{country:'jp'}, fields:['name','geometry','vicinity'] }
+    );
+    placesAC.addListener('place_changed', ()=>{
+      const p = placesAC.getPlace();
+      if (!p.geometry) return;
+      newPlaceLat = p.geometry.location.lat();
+      newPlaceLng = p.geometry.location.lng();
+      document.getElementById('new-place-search').value = p.name;
+      if (p.vicinity) {
+        const parts = p.vicinity.split(/[,，]/);
+        document.getElementById('new-place-area').value = parts[0].trim();
+      }
+    });
+  }
+}
+function closeAddModal() { document.getElementById('add-modal').classList.remove('active'); }
+function selectEmoji(el) {
+  document.querySelectorAll('.emoji-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedEmoji = el.dataset.emoji;
+}
+function saveNewPlace() {
+  const name = document.getElementById('new-place-search').value.trim();
+  if (!name) { alert('請輸入地點名稱'); return; }
+  if (!newPlaceLat) { alert('請從搜尋建議中選擇一個地點，讓系統取得座標'); return; }
+  const category = document.getElementById('new-place-category').value;
+  const place = {
+    id: 'custom-' + Date.now(),
+    name, category,
+    area:  document.getElementById('new-place-area').value.trim()  || '東京',
+    hours: document.getElementById('new-place-hours').value.trim() || '請確認營業時間',
+    note:  document.getElementById('new-place-note').value.trim(),
+    emoji: selectedEmoji,
+    color: CATEGORY_COLORS[category] || '#999',
+    lat: newPlaceLat, lng: newPlaceLng,
+    tags: [], closedDays: [], custom: true
+  };
+  customPlaces.push(place);
+  save();
+  if (map) addMarker(place);
+  renderAll();
+  closeAddModal();
+}
+
+// ── Tabs ──
+const ALL_TABS=['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
+const LIST_TABS=ALL_TABS.slice(1);
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ALL_TABS[i]===tab));
-  const isMap = tab==='map';
-  document.getElementById('panel-map').classList.toggle('active', isMap);
-  document.getElementById('list-content').classList.toggle('active', !isMap);
-  LIST_TABS.forEach(t=>{ const el=document.getElementById(`panel-${t}`); if(el) el.classList.toggle('active',t===tab); });
+  const isMap=tab==='map';
+  document.getElementById('panel-map').classList.toggle('active',isMap);
+  document.getElementById('list-content').classList.toggle('active',!isMap);
+  LIST_TABS.forEach(t=>{ const el=document.getElementById(`panel-${t}`); if(el)el.classList.toggle('active',t===tab); });
 }
 
 renderAll();
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpZvQ-8RwCNSeRlWy5eoiJJMISwPkbG9M&libraries=marker&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpZvQ-8RwCNSeRlWy5eoiJJMISwPkbG9M&libraries=marker,places&callback=initMap" async defer></script>
 </body>
 </html>
