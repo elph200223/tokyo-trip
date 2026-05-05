@@ -7,106 +7,105 @@
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f3ef; --surface: #ffffff; --border: #e0dbd2;
-    --accent: #8b5e3c; --accent2: #c4956a; --text: #2a2218;
-    --text-muted: #999; --visited: #eeebe6; --visited-text: #ccc;
-    --header-h: 68px; --tab-h: 44px;
+    --bg:#f5f3ef;--surface:#fff;--border:#e0dbd2;
+    --accent:#8b5e3c;--accent2:#c4956a;--text:#2a2218;
+    --text-muted:#999;--visited:#eeebe6;--visited-text:#ccc;
+    --header-h:68px;--tab-h:44px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg); color: var(--text); font-family: 'Zen Kaku Gothic New', sans-serif; min-height: 100vh; }
-  header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 300; padding: 12px 16px 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
-  .header-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
-  h1 { font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 0.04em; outline: none; min-width: 60px; }
-  h1:focus { border-bottom: 1.5px solid var(--accent2); }
-  .date-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); outline: none; min-width: 40px; }
-  .date-badge:focus { border-bottom: 1px solid var(--accent2); }
-  .stats { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); }
-  .stats b { color: var(--accent); font-weight: 500; }
-  .tabs { position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--tab-h); background: var(--bg); border-bottom: 1px solid var(--border); z-index: 299; display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { flex-shrink: 0; font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 12px; font-weight: 700; padding: 0 14px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; height: 100%; transition: color 0.15s, border-color 0.15s; }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  #panel-map { display: none; position: fixed; top: calc(var(--header-h) + var(--tab-h)); left: 0; right: 0; bottom: 0; }
-  #panel-map.active { display: block; }
-  #map { width: 100%; height: 100%; }
-  .content { display: none; margin-top: calc(var(--header-h) + var(--tab-h)); padding: 14px 16px 90px; }
-  .content.active { display: block; }
-  .panel { display: none; }
-  .panel.active { display: block; }
-  .section-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-  .section-label:first-child { margin-top: 4px; }
-  .place-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 9px; position: relative; overflow: hidden; transition: border-color 0.15s; }
-  .place-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent2); opacity: 0; transition: opacity 0.15s; }
-  .place-card:hover { border-color: #c8c0b4; }
-  .place-card:hover::before { opacity: 1; }
-  .place-card.visited { background: var(--visited); border-color: var(--visited); opacity: 0.55; }
-  .place-card.visited::before { background: #bbb; opacity: 1; }
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
-  .place-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
-  .place-card.visited .place-name { color: var(--visited-text); text-decoration: line-through; }
-  .visit-btn { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; transition: all 0.15s; }
-  .visit-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .place-card.visited .visit-btn { background: #ccc; border-color: #ccc; color: white; }
-  .place-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 7px; }
-  .hours-pill { padding: 2px 7px; border-radius: 10px; font-size: 10px; background: var(--bg); border: 1px solid var(--border); }
-  .hours-closed { color: #d05030; background: #fff5f2; border-color: #f0c0b0; }
-  .hours-open { color: #3a7a50; background: #f2faf5; border-color: #a0d8b0; }
-  .place-note { font-size: 12px; color: #888; line-height: 1.55; margin-bottom: 9px; }
-  .tags { margin-bottom: 8px; }
-  .tag { display: inline-block; font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 20px; margin-right: 4px; margin-bottom: 3px; }
-  .tag-warning { background: #fff3e0; color: #b06020; border: 1px solid #f0d0a0; }
-  .tag-date { background: #e8f4f8; color: #2a7a9a; border: 1px solid #b0d8e8; }
-  .tag-free { background: #e8f5e8; color: #2a7a3a; border: 1px solid #a0d8a0; }
-  .card-actions { display: flex; gap: 7px; }
-  .btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; text-decoration: none; text-align: center; display: block; transition: all 0.15s; line-height: 1; }
-  .btn:hover { background: #f0f7f3; border-color: #7ab49a; color: #3a7a5a; }
-  .btn-primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
-  .btn-primary:hover { background: #7a5030; border-color: #7a5030; color: white; }
-  .btn-danger { background: transparent; border-color: #f0c0b0; color: #d05030; margin-top: 7px; }
-  .btn-danger:hover { background: #fff5f2; border-color: #d05030; color: #d05030; }
-  .checklist-section { margin-bottom: 24px; }
-  .check-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; transition: all 0.12s; }
-  .check-item:hover { border-color: #c8c0b4; }
-  .check-item.checked { opacity: 0.45; background: var(--visited); }
-  .check-box { width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 0.12s; cursor: pointer; }
-  .check-item.checked .check-box { background: #aaa; border-color: #aaa; color: white; }
-  .check-text { font-size: 13px; color: var(--text); flex: 1; border: none; background: transparent; outline: none; font-family: 'Zen Kaku Gothic New', sans-serif; padding: 0; cursor: text; }
-  .check-item.checked .check-text { text-decoration: line-through; color: var(--text-muted); }
-  .delete-btn { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: none; background: transparent; color: #ccc; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; line-height: 1; }
-  .delete-btn:hover { color: #e07060; background: #fff0ee; }
-  .add-item-row { display: flex; gap: 8px; margin-top: 8px; }
-  .add-input { flex: 1; padding: 9px 12px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; font-family: 'Zen Kaku Gothic New', sans-serif; outline: none; transition: border-color 0.15s; }
-  .add-input:focus { border-color: var(--accent2); border-style: solid; }
-  .add-input::placeholder { color: var(--text-muted); }
-  .add-btn { padding: 9px 14px; border-radius: 8px; border: 1px solid var(--accent2); background: var(--accent2); color: white; font-size: 13px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; white-space: nowrap; }
-  .add-btn:hover { background: var(--accent); border-color: var(--accent); }
-  /* Google Maps popup */
-  .popup-inner { padding: 13px 15px; min-width: 190px; font-family: 'Zen Kaku Gothic New', sans-serif; }
-  .popup-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
-  .popup-area { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
-  .popup-hours { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.4; }
-  .popup-nav { display: block; width: 100%; background: var(--accent); color: white; border: none; border-radius: 6px; padding: 8px; font-size: 12px; font-weight: 700; font-family: 'Zen Kaku Gothic New', sans-serif; cursor: pointer; text-align: center; text-decoration: none; }
-  .gm-style .gm-style-iw-c { padding: 0 !important; border-radius: 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
-  .gm-style .gm-style-iw-d { overflow: hidden !important; }
-  .gm-ui-hover-effect { top: 4px !important; right: 4px !important; }
-  /* FAB */
-  .fab { position: fixed; bottom: 24px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.22); z-index: 250; display: flex; align-items: center; justify-content: center; transition: background 0.15s; line-height: 1; }
-  .fab:hover { background: #7a5030; }
-  /* Add place modal */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 400; align-items: flex-end; }
-  .modal-overlay.active { display: flex; }
-  .modal-sheet { background: var(--surface); border-radius: 18px 18px 0 0; padding: 20px 16px 40px; width: 100%; max-height: 90vh; overflow-y: auto; }
-  .modal-title { font-size: 16px; font-weight: 900; color: var(--accent); margin-bottom: 16px; }
-  .modal-field { margin-bottom: 12px; }
-  .modal-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
-  .modal-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: 'Zen Kaku Gothic New', sans-serif; outline: none; }
-  .modal-input:focus { border-color: var(--accent2); }
-  .modal-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: 'Zen Kaku Gothic New', sans-serif; outline: none; appearance: none; }
-  .emoji-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .emoji-opt { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
-  .emoji-opt.selected { border-color: var(--accent); background: #f5ede6; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-  .pac-container { z-index: 500 !important; font-family: 'Zen Kaku Gothic New', sans-serif !important; border-radius: 8px !important; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;}
+  header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--bg);border-bottom:1px solid var(--border);z-index:300;padding:12px 16px 8px;box-shadow:0 1px 8px rgba(0,0,0,.06);}
+  .header-row{display:flex;align-items:baseline;gap:10px;margin-bottom:3px;}
+  h1{font-size:20px;font-weight:900;color:var(--accent);letter-spacing:.04em;outline:none;min-width:60px;}
+  h1:focus{border-bottom:1.5px solid var(--accent2);}
+  .date-badge{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);outline:none;min-width:40px;}
+  .date-badge:focus{border-bottom:1px solid var(--accent2);}
+  .stats{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);}
+  .stats b{color:var(--accent);font-weight:500;}
+  .tabs{position:fixed;top:var(--header-h);left:0;right:0;height:var(--tab-h);background:var(--bg);border-bottom:1px solid var(--border);z-index:299;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex-shrink:0;font-family:'Zen Kaku Gothic New',sans-serif;font-size:12px;font-weight:700;padding:0 14px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;height:100%;transition:color .15s,border-color .15s;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  #panel-map{display:none;position:fixed;top:calc(var(--header-h) + var(--tab-h));left:0;right:0;bottom:0;}
+  #panel-map.active{display:block;}
+  #map{width:100%;height:100%;}
+  .content{display:none;margin-top:calc(var(--header-h) + var(--tab-h));padding:14px 16px 90px;}
+  .content.active{display:block;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .section-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.15em;color:var(--text-muted);text-transform:uppercase;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .section-label:first-child{margin-top:4px;}
+  .place-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:9px;position:relative;overflow:hidden;transition:border-color .15s;}
+  .place-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent2);opacity:0;transition:opacity .15s;}
+  .place-card:hover{border-color:#c8c0b4;}
+  .place-card:hover::before{opacity:1;}
+  .place-card.visited{background:var(--visited);border-color:var(--visited);opacity:.55;}
+  .place-card.visited::before{background:#bbb;opacity:1;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .place-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;}
+  .place-card.visited .place-name{color:var(--visited-text);text-decoration:line-through;}
+  .visit-btn{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px;transition:all .15s;}
+  .visit-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .place-card.visited .visit-btn{background:#ccc;border-color:#ccc;color:white;}
+  .place-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:7px;}
+  .hours-pill{padding:2px 7px;border-radius:10px;font-size:10px;background:var(--bg);border:1px solid var(--border);}
+  .hours-closed{color:#d05030;background:#fff5f2;border-color:#f0c0b0;}
+  .hours-open{color:#3a7a50;background:#f2faf5;border-color:#a0d8b0;}
+  .place-note{font-size:12px;color:#888;line-height:1.55;margin-bottom:9px;}
+  .tags{margin-bottom:8px;}
+  .tag{display:inline-block;font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:20px;margin-right:4px;margin-bottom:3px;}
+  .tag-warning{background:#fff3e0;color:#b06020;border:1px solid #f0d0a0;}
+  .tag-date{background:#e8f4f8;color:#2a7a9a;border:1px solid #b0d8e8;}
+  .tag-free{background:#e8f5e8;color:#2a7a3a;border:1px solid #a0d8a0;}
+  .card-actions{display:flex;gap:7px;}
+  .btn{flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;text-decoration:none;text-align:center;display:block;transition:all .15s;line-height:1;}
+  .btn:hover{background:#f0f7f3;border-color:#7ab49a;color:#3a7a5a;}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:700;}
+  .btn-primary:hover{background:#7a5030;border-color:#7a5030;color:white;}
+  .btn-danger{background:transparent;border-color:#f0c0b0;color:#d05030;margin-top:7px;}
+  .btn-danger:hover{background:#fff5f2;border-color:#d05030;color:#d05030;}
+  .checklist-section{margin-bottom:24px;}
+  .check-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .12s;}
+  .check-item:hover{border-color:#c8c0b4;}
+  .check-item.checked{opacity:.45;background:var(--visited);}
+  .check-box{width:18px;height:18px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .12s;cursor:pointer;}
+  .check-item.checked .check-box{background:#aaa;border-color:#aaa;color:white;}
+  .check-text{font-size:13px;color:var(--text);flex:1;border:none;background:transparent;outline:none;font-family:'Zen Kaku Gothic New',sans-serif;padding:0;cursor:text;}
+  .check-item.checked .check-text{text-decoration:line-through;color:var(--text-muted);}
+  .delete-btn{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:#ccc;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1;}
+  .delete-btn:hover{color:#e07060;background:#fff0ee;}
+  .add-item-row{display:flex;gap:8px;margin-top:8px;}
+  .add-input{flex:1;padding:9px 12px;border:1px dashed var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;transition:border-color .15s;}
+  .add-input:focus{border-color:var(--accent2);border-style:solid;}
+  .add-input::placeholder{color:var(--text-muted);}
+  .add-btn{padding:9px 14px;border-radius:8px;border:1px solid var(--accent2);background:var(--accent2);color:white;font-size:13px;font-weight:700;font-family:'Zen Kaku Gothic New',sans-serif;cursor:pointer;white-space:nowrap;}
+  .add-btn:hover{background:var(--accent);border-color:var(--accent);}
+  .popup-inner{padding:13px 15px;min-width:190px;font-family:'Zen Kaku Gothic New',sans-serif;}
+  .popup-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .popup-area{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+  .popup-hours{font-size:11px;color:#888;margin-bottom:10px;line-height:1.4;}
+  .popup-nav{display:block;width:100%;background:var(--accent);color:white;border:none;border-radius:6px;padding:8px;font-size:12px;font-weight:700;font-family:'Zen Kaku Gothic New',sans-serif;cursor:pointer;text-align:center;text-decoration:none;}
+  .gm-style .gm-style-iw-c{padding:0!important;border-radius:10px!important;box-shadow:0 4px 20px rgba(0,0,0,.15)!important;}
+  .gm-style .gm-style-iw-d{overflow:hidden!important;}
+  .gm-ui-hover-effect{top:4px!important;right:4px!important;}
+  .fab{position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.22);z-index:250;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1;}
+  .fab:hover{background:#7a5030;}
+  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:400;align-items:flex-end;}
+  .modal-overlay.active{display:flex;}
+  .modal-sheet{background:var(--surface);border-radius:18px 18px 0 0;padding:20px 16px 40px;width:100%;max-height:90vh;overflow-y:auto;}
+  .modal-title{font-size:16px;font-weight:900;color:var(--accent);margin-bottom:16px;}
+  .modal-field{margin-bottom:12px;}
+  .modal-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
+  .modal-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;}
+  .modal-input:focus{border-color:var(--accent2);}
+  .modal-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;appearance:none;}
+  .new-cat-box{margin-top:8px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;display:none;}
+  .new-cat-box.show{display:block;}
+  .emoji-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .emoji-opt{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+  .emoji-opt.selected{border-color:var(--accent);background:#f5ede6;}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .pac-container{z-index:500!important;font-family:'Zen Kaku Gothic New',sans-serif!important;border-radius:8px!important;}
 </style>
 </head>
 <body>
@@ -117,17 +116,7 @@
   </div>
   <div class="stats">候選 <b id="total-count">0</b> 個 · 已去 <b id="visited-count">0</b> 個</div>
 </header>
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('map')">🗺 地圖</button>
-  <button class="tab" onclick="switchTab('all')">全部</button>
-  <button class="tab" onclick="switchTab('cafe')">☕ 咖啡廳</button>
-  <button class="tab" onclick="switchTab('stationery')">✏️ 文具</button>
-  <button class="tab" onclick="switchTab('shopping')">🛍 選品</button>
-  <button class="tab" onclick="switchTab('clothes')">👕 衣服</button>
-  <button class="tab" onclick="switchTab('electronics')">🔌 電器</button>
-  <button class="tab" onclick="switchTab('market')">🎪 市集</button>
-  <button class="tab" onclick="switchTab('checklist')">✅ 清單</button>
-</div>
+<div class="tabs" id="tabs-bar"></div>
 <div id="panel-map" class="active"><div id="map"></div></div>
 <div class="content" id="list-content">
   <div id="panel-all" class="panel active"></div>
@@ -157,10 +146,8 @@
   </div>
 </div>
 
-<!-- Floating Add Button -->
 <button class="fab" onclick="openAddModal()">＋</button>
 
-<!-- Add Place Modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal-sheet">
     <div class="modal-title">＋ 新增景點</div>
@@ -170,14 +157,26 @@
     </div>
     <div class="modal-field">
       <div class="modal-label">分類</div>
-      <select class="modal-select" id="new-place-category">
-        <option value="cafe">☕ 咖啡廳</option>
-        <option value="stationery">✏️ 文具</option>
-        <option value="shopping">🛍 選品</option>
-        <option value="clothes">👕 衣服</option>
-        <option value="electronics">🔌 電器</option>
-        <option value="market">🎪 市集</option>
-      </select>
+      <select class="modal-select" id="new-place-category" onchange="onCatSelectChange()"></select>
+      <div class="new-cat-box" id="new-cat-box">
+        <div class="modal-label" style="margin-bottom:6px;">新分類名稱</div>
+        <input class="modal-input" id="new-cat-name" placeholder="例：餐廳、景點、夜市..." style="margin-bottom:8px;">
+        <div class="modal-label" style="margin-bottom:6px;">圖示</div>
+        <div class="emoji-row" id="cat-emoji-row">
+          <div class="emoji-opt selected" data-emoji="📂" onclick="selectCatEmoji(this)">📂</div>
+          <div class="emoji-opt" data-emoji="🍜" onclick="selectCatEmoji(this)">🍜</div>
+          <div class="emoji-opt" data-emoji="🍣" onclick="selectCatEmoji(this)">🍣</div>
+          <div class="emoji-opt" data-emoji="🍰" onclick="selectCatEmoji(this)">🍰</div>
+          <div class="emoji-opt" data-emoji="🏛" onclick="selectCatEmoji(this)">🏛</div>
+          <div class="emoji-opt" data-emoji="🌸" onclick="selectCatEmoji(this)">🌸</div>
+          <div class="emoji-opt" data-emoji="🎮" onclick="selectCatEmoji(this)">🎮</div>
+          <div class="emoji-opt" data-emoji="📸" onclick="selectCatEmoji(this)">📸</div>
+          <div class="emoji-opt" data-emoji="🎨" onclick="selectCatEmoji(this)">🎨</div>
+          <div class="emoji-opt" data-emoji="🏃" onclick="selectCatEmoji(this)">🏃</div>
+          <div class="emoji-opt" data-emoji="💄" onclick="selectCatEmoji(this)">💄</div>
+          <div class="emoji-opt" data-emoji="🧸" onclick="selectCatEmoji(this)">🧸</div>
+        </div>
+      </div>
     </div>
     <div class="modal-field">
       <div class="modal-label">地區</div>
@@ -192,20 +191,20 @@
       <input class="modal-input" id="new-place-note" placeholder="想記錄的事...">
     </div>
     <div class="modal-field">
-      <div class="modal-label">圖示</div>
-      <div class="emoji-row" id="emoji-row">
-        <div class="emoji-opt selected" data-emoji="📍" onclick="selectEmoji(this)">📍</div>
-        <div class="emoji-opt" data-emoji="☕" onclick="selectEmoji(this)">☕</div>
-        <div class="emoji-opt" data-emoji="🍜" onclick="selectEmoji(this)">🍜</div>
-        <div class="emoji-opt" data-emoji="🍣" onclick="selectEmoji(this)">🍣</div>
-        <div class="emoji-opt" data-emoji="🛍" onclick="selectEmoji(this)">🛍</div>
-        <div class="emoji-opt" data-emoji="👕" onclick="selectEmoji(this)">👕</div>
-        <div class="emoji-opt" data-emoji="✏️" onclick="selectEmoji(this)">✏️</div>
-        <div class="emoji-opt" data-emoji="🎪" onclick="selectEmoji(this)">🎪</div>
-        <div class="emoji-opt" data-emoji="🏛" onclick="selectEmoji(this)">🏛</div>
-        <div class="emoji-opt" data-emoji="🌸" onclick="selectEmoji(this)">🌸</div>
-        <div class="emoji-opt" data-emoji="🎮" onclick="selectEmoji(this)">🎮</div>
-        <div class="emoji-opt" data-emoji="📚" onclick="selectEmoji(this)">📚</div>
+      <div class="modal-label">景點圖示</div>
+      <div class="emoji-row" id="place-emoji-row">
+        <div class="emoji-opt selected" data-emoji="📍" onclick="selectPlaceEmoji(this)">📍</div>
+        <div class="emoji-opt" data-emoji="☕" onclick="selectPlaceEmoji(this)">☕</div>
+        <div class="emoji-opt" data-emoji="🍜" onclick="selectPlaceEmoji(this)">🍜</div>
+        <div class="emoji-opt" data-emoji="🍣" onclick="selectPlaceEmoji(this)">🍣</div>
+        <div class="emoji-opt" data-emoji="🛍" onclick="selectPlaceEmoji(this)">🛍</div>
+        <div class="emoji-opt" data-emoji="👕" onclick="selectPlaceEmoji(this)">👕</div>
+        <div class="emoji-opt" data-emoji="✏️" onclick="selectPlaceEmoji(this)">✏️</div>
+        <div class="emoji-opt" data-emoji="🎪" onclick="selectPlaceEmoji(this)">🎪</div>
+        <div class="emoji-opt" data-emoji="🏛" onclick="selectPlaceEmoji(this)">🏛</div>
+        <div class="emoji-opt" data-emoji="🌸" onclick="selectPlaceEmoji(this)">🌸</div>
+        <div class="emoji-opt" data-emoji="🎮" onclick="selectPlaceEmoji(this)">🎮</div>
+        <div class="emoji-opt" data-emoji="📚" onclick="selectPlaceEmoji(this)">📚</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -217,38 +216,48 @@
 
 <script>
 const PLACES = [
-  { id:'ambre', name:"Café de l'Ambre", category:'cafe', area:'銀座', hours:'週二–日 11:00–20:00', closedDays:[1], note:'東京最老牌純咖啡店，必點 Queen Amber（蛋奶酒咖啡）。', tags:[{text:'週一休',type:'warning'}], lat:35.6679217, lng:139.7622983, emoji:'☕', color:'#d4956a' },
-  { id:'fuglen', name:'Fuglen Asakusa', category:'cafe', area:'淺草', hours:'每天 08:00–21:00（週二五至23:00）', closedDays:[], note:'北歐風格咖啡廳，8 點就開門，離蔵前走路可達。', tags:[], lat:35.7144526, lng:139.7939807, emoji:'☕', color:'#d4956a' },
-  { id:'iff', name:'iff coffee roastery', category:'cafe', area:'南青山', hours:'週二–五 10:00–18:00', closedDays:[0,1,6], note:'來自台灣的精品咖啡，創意調飲很特別。', tags:[{text:'週一六日休',type:'warning'}], lat:35.6653988, lng:139.7201432, emoji:'☕', color:'#d4956a' },
-  { id:'itoya', name:'銀座 Itoya', category:'stationery', area:'銀座', hours:'週一–六 10:00–20:00｜週日 10:00–19:00', closedDays:[], note:'東京最頂級文具選品，可在店內寫明信片直接寄出！', tags:[], lat:35.6731273, lng:139.7672138, emoji:'✏️', color:'#6a9ac4' },
-  { id:'loft', name:'Loft 澀谷', category:'stationery', area:'澀谷', hours:'每天 11:00–21:00', closedDays:[], note:'B1 文具最齊，價格比 Itoya 親民，適合掃伴手禮。', tags:[], lat:35.6609346, lng:139.6997226, emoji:'✏️', color:'#6a9ac4' },
-  { id:'kura', name:'蔵前', category:'shopping', area:'蔵前', hours:'各店不同，多數 11:00–18:00', closedDays:[], note:'文青選品小店聚集地。和淺草 Fuglen 走路可達。', tags:[], lat:35.7078, lng:139.7924, emoji:'🛍', color:'#7ac46a' },
-  { id:'yanaka', name:'谷中銀座', category:'shopping', area:'谷中', hours:'各店不同，多數 10:00–18:00', closedDays:[], note:'老街風格，手作雜貨、陶器小物，適合挖驚喜。', tags:[], lat:35.7268, lng:139.7688, emoji:'🛍', color:'#7ac46a' },
-  { id:'catstreet', name:'原宿 Cat Street', category:'clothes', area:'原宿', hours:'各店不同，多數 11:00–20:00', closedDays:[], note:'獨立選品＋日系品牌集中，比竹下通安靜很多。', tags:[], lat:35.6679, lng:139.7074, emoji:'👕', color:'#c46a9a' },
-  { id:'beams', name:'BEAMS 原宿旗艦', category:'clothes', area:'原宿', hours:'每天 11:00–20:00', closedDays:[], note:'原宿旗艦店品項最齊全，和 Cat Street 同一區。', tags:[], lat:35.6703, lng:139.7055, emoji:'👕', color:'#c46a9a' },
-  { id:'freaks', name:'Freaks Store 澀谷', category:'clothes', area:'澀谷', hours:'每天 11:00–20:00', closedDays:[], note:'風格輕鬆有設計感，價格合理。', tags:[], lat:35.6614, lng:139.6983, emoji:'👕', color:'#c46a9a' },
-  { id:'rageblue', name:'Rage Blue 澀谷', category:'clothes', area:'澀谷', hours:'每天 11:00–21:00', closedDays:[], note:'日系選品風，澀谷和新宿都有。', tags:[], lat:35.6618, lng:139.6990, emoji:'👕', color:'#c46a9a' },
-  { id:'yodobashi', name:'Yodobashi Akiba', category:'electronics', area:'秋葉原', hours:'每天 09:30–22:00', closedDays:[], note:'東京最大電器行，樓層分類清楚。離上野也近。', tags:[], lat:35.698917, lng:139.774798, emoji:'🔌', color:'#c4c46a' },
-  { id:'odaiba-market', name:'台場創作者市集', category:'market', area:'台場', hours:'6/6–6/8，每天 10:00–18:00', closedDays:[], note:'旅遊期間剛好舉辦！免費入場，部分攤位需提前抽號。', tags:[{text:'6/6–6/8',type:'date'},{text:'免費',type:'free'}], lat:35.6254, lng:139.7750, emoji:'🎪', color:'#9a6ac4' },
-  { id:'oi-market', name:'大井競馬場跳蚤市場', category:'market', area:'大井', hours:'幾乎每週末 09:00–14:30', closedDays:[], note:'約 350 個攤位，離台場不遠，記得早去。雨天可能取消。', tags:[{text:'6/7（六）or 6/8（日）',type:'date'}], lat:35.5967, lng:139.7378, emoji:'🎪', color:'#9a6ac4' },
+  {id:'ambre',name:"Café de l'Ambre",category:'cafe',area:'銀座',hours:'週二–日 11:00–20:00',closedDays:[1],note:'東京最老牌純咖啡店，必點 Queen Amber（蛋奶酒咖啡）。',tags:[{text:'週一休',type:'warning'}],lat:35.6679217,lng:139.7622983,emoji:'☕',color:'#d4956a'},
+  {id:'fuglen',name:'Fuglen Asakusa',category:'cafe',area:'淺草',hours:'每天 08:00–21:00（週二五至23:00）',closedDays:[],note:'北歐風格咖啡廳，8 點就開門，離蔵前走路可達。',tags:[],lat:35.7144526,lng:139.7939807,emoji:'☕',color:'#d4956a'},
+  {id:'iff',name:'iff coffee roastery',category:'cafe',area:'南青山',hours:'週二–五 10:00–18:00',closedDays:[0,1,6],note:'來自台灣的精品咖啡，創意調飲很特別。',tags:[{text:'週一六日休',type:'warning'}],lat:35.6653988,lng:139.7201432,emoji:'☕',color:'#d4956a'},
+  {id:'itoya',name:'銀座 Itoya',category:'stationery',area:'銀座',hours:'週一–六 10:00–20:00｜週日 10:00–19:00',closedDays:[],note:'東京最頂級文具選品，可在店內寫明信片直接寄出！',tags:[],lat:35.6731273,lng:139.7672138,emoji:'✏️',color:'#6a9ac4'},
+  {id:'loft',name:'Loft 澀谷',category:'stationery',area:'澀谷',hours:'每天 11:00–21:00',closedDays:[],note:'B1 文具最齊，價格比 Itoya 親民，適合掃伴手禮。',tags:[],lat:35.6609346,lng:139.6997226,emoji:'✏️',color:'#6a9ac4'},
+  {id:'kura',name:'蔵前',category:'shopping',area:'蔵前',hours:'各店不同，多數 11:00–18:00',closedDays:[],note:'文青選品小店聚集地。和淺草 Fuglen 走路可達。',tags:[],lat:35.7078,lng:139.7924,emoji:'🛍',color:'#7ac46a'},
+  {id:'yanaka',name:'谷中銀座',category:'shopping',area:'谷中',hours:'各店不同，多數 10:00–18:00',closedDays:[],note:'老街風格，手作雜貨、陶器小物，適合挖驚喜。',tags:[],lat:35.7268,lng:139.7688,emoji:'🛍',color:'#7ac46a'},
+  {id:'catstreet',name:'原宿 Cat Street',category:'clothes',area:'原宿',hours:'各店不同，多數 11:00–20:00',closedDays:[],note:'獨立選品＋日系品牌集中，比竹下通安靜很多。',tags:[],lat:35.6679,lng:139.7074,emoji:'👕',color:'#c46a9a'},
+  {id:'beams',name:'BEAMS 原宿旗艦',category:'clothes',area:'原宿',hours:'每天 11:00–20:00',closedDays:[],note:'原宿旗艦店品項最齊全，和 Cat Street 同一區。',tags:[],lat:35.6703,lng:139.7055,emoji:'👕',color:'#c46a9a'},
+  {id:'freaks',name:'Freaks Store 澀谷',category:'clothes',area:'澀谷',hours:'每天 11:00–20:00',closedDays:[],note:'風格輕鬆有設計感，價格合理。',tags:[],lat:35.6614,lng:139.6983,emoji:'👕',color:'#c46a9a'},
+  {id:'rageblue',name:'Rage Blue 澀谷',category:'clothes',area:'澀谷',hours:'每天 11:00–21:00',closedDays:[],note:'日系選品風，澀谷和新宿都有。',tags:[],lat:35.6618,lng:139.6990,emoji:'👕',color:'#c46a9a'},
+  {id:'yodobashi',name:'Yodobashi Akiba',category:'electronics',area:'秋葉原',hours:'每天 09:30–22:00',closedDays:[],note:'東京最大電器行，樓層分類清楚。離上野也近。',tags:[],lat:35.698917,lng:139.774798,emoji:'🔌',color:'#c4c46a'},
+  {id:'odaiba-market',name:'台場創作者市集',category:'market',area:'台場',hours:'6/6–6/8，每天 10:00–18:00',closedDays:[],note:'旅遊期間剛好舉辦！免費入場，部分攤位需提前抽號。',tags:[{text:'6/6–6/8',type:'date'},{text:'免費',type:'free'}],lat:35.6254,lng:139.7750,emoji:'🎪',color:'#9a6ac4'},
+  {id:'oi-market',name:'大井競馬場跳蚤市場',category:'market',area:'大井',hours:'幾乎每週末 09:00–14:30',closedDays:[],note:'約 350 個攤位，離台場不遠，記得早去。雨天可能取消。',tags:[{text:'6/7（六）or 6/8（日）',type:'date'}],lat:35.5967,lng:139.7378,emoji:'🎪',color:'#9a6ac4'},
 ];
 
-const CATEGORY_COLORS = { cafe:'#d4956a', stationery:'#6a9ac4', shopping:'#7ac46a', clothes:'#c46a9a', electronics:'#c4c46a', market:'#9a6ac4' };
+const BASE_CATS = [
+  {id:'cafe',     label:'☕ 咖啡廳', color:'#d4956a'},
+  {id:'stationery',label:'✏️ 文具',  color:'#6a9ac4'},
+  {id:'shopping', label:'🛍 選品',   color:'#7ac46a'},
+  {id:'clothes',  label:'👕 衣服',   color:'#c46a9a'},
+  {id:'electronics',label:'🔌 電器', color:'#c4c46a'},
+  {id:'market',   label:'🎪 市集',   color:'#9a6ac4'},
+];
+const EXTRA_CAT_COLORS = ['#e08060','#6090d8','#50b870','#c060a0','#b0b040','#8060c0','#40a8b0','#c06060'];
 
 const DEFAULT_PACKING = ['護照','Suica 卡（或備好錢買）','轉接頭（日本 A 型）','行動電源','相機','耳機','輕薄外套（6月偶有梅雨偏涼）','折疊傘','換洗衣物','常備藥','信用卡（Visa/Master）','日圓現金（部分小店只收現金）','空的行李空間（要帶東西回來）','環保袋'];
 const DEFAULT_PREP = ['確認護照有效期限','購買來回機票','預訂住宿','iff coffee 確認當週營業（週二－週五）','台場創作者市集確認是否需要提前抽號','下載 Google Maps 東京離線地圖','確認 6/6–8 台場市集天氣（雨天可能取消）','通知信用卡公司出國','準備日文常用語備查'];
 
-let visitedPlaces=[], packingItems=[], prepItems=[], customPlaces=[];
+let visitedPlaces=[], packingItems=[], prepItems=[], customPlaces=[], customCategories=[];
+let currentTab = 'map';
 try {
-  visitedPlaces  = JSON.parse(localStorage.getItem('visited')       || '[]');
-  packingItems   = JSON.parse(localStorage.getItem('packingItems')  || 'null') ?? [];
-  prepItems      = JSON.parse(localStorage.getItem('prepItems')     || 'null') ?? [];
-  customPlaces   = JSON.parse(localStorage.getItem('customPlaces')  || '[]');
-} catch(e) {}
+  visitedPlaces    = JSON.parse(localStorage.getItem('visited')          || '[]');
+  packingItems     = JSON.parse(localStorage.getItem('packingItems')     || 'null') ?? [];
+  prepItems        = JSON.parse(localStorage.getItem('prepItems')        || 'null') ?? [];
+  customPlaces     = JSON.parse(localStorage.getItem('customPlaces')     || '[]');
+  customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+} catch(e){}
 if (!packingItems.length) packingItems = DEFAULT_PACKING.map(t=>({text:t,checked:false}));
 if (!prepItems.length)    prepItems   = DEFAULT_PREP.map(t=>({text:t,checked:false}));
 
-// Editable title
+// Editable title/date
 const titleEl = document.getElementById('trip-title');
 const dateEl  = document.getElementById('trip-date');
 titleEl.textContent = localStorage.getItem('tripTitle') || '東京 2026';
@@ -258,27 +267,71 @@ dateEl.addEventListener('blur',  ()=>localStorage.setItem('tripDate',  dateEl.te
 
 function save() {
   try {
-    localStorage.setItem('visited',      JSON.stringify(visitedPlaces));
-    localStorage.setItem('packingItems', JSON.stringify(packingItems));
-    localStorage.setItem('prepItems',    JSON.stringify(prepItems));
-    localStorage.setItem('customPlaces', JSON.stringify(customPlaces));
-  } catch(e) {}
+    localStorage.setItem('visited',          JSON.stringify(visitedPlaces));
+    localStorage.setItem('packingItems',     JSON.stringify(packingItems));
+    localStorage.setItem('prepItems',        JSON.stringify(prepItems));
+    localStorage.setItem('customPlaces',     JSON.stringify(customPlaces));
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+  } catch(e){}
 }
 
 function getAllPlaces() { return [...PLACES, ...customPlaces]; }
+function getAllCatDefs() { return [...BASE_CATS, ...customCategories]; }
+function getCatDef(id)  { return getAllCatDefs().find(c=>c.id===id); }
 
+// ── Tabs (dynamic) ──
+function buildTabDefs() {
+  return [
+    {id:'map',       label:'🗺 地圖'},
+    {id:'all',       label:'全部'},
+    ...BASE_CATS.map(c=>({id:c.id, label:c.label})),
+    ...customCategories.map(c=>({id:c.id, label:`${c.emoji} ${c.name}`})),
+    {id:'checklist', label:'✅ 清單'},
+  ];
+}
+function renderTabs() {
+  document.getElementById('tabs-bar').innerHTML = buildTabDefs().map(t=>
+    `<button class="tab ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+
+function ensurePanels() {
+  const lc = document.getElementById('list-content');
+  const before = document.getElementById('panel-checklist');
+  customCategories.forEach(cat=>{
+    if (!document.getElementById(`panel-${cat.id}`)) {
+      const div = document.createElement('div');
+      div.id = `panel-${cat.id}`;
+      div.className = 'panel';
+      lc.insertBefore(div, before);
+    }
+  });
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  renderTabs();
+  const isMap = tab==='map';
+  document.getElementById('panel-map').classList.toggle('active', isMap);
+  document.getElementById('list-content').classList.toggle('active', !isMap);
+  buildTabDefs().slice(1).forEach(t=>{
+    const el = document.getElementById(`panel-${t.id}`);
+    if (el) el.classList.toggle('active', t.id===tab);
+  });
+}
+
+// ── Cards & categories ──
 function getHoursHTML(place) {
   const today = new Date().getDay();
   if (place.closedDays && place.closedDays.includes(today)) return `<span class="hours-pill hours-closed">今日公休</span>`;
-  return `<span class="hours-pill hours-open">${place.hours || '請確認營業時間'}</span>`;
+  return `<span class="hours-pill hours-open">${place.hours||'請確認營業時間'}</span>`;
 }
-
 function renderCard(place) {
   const isVisited = visitedPlaces.includes(place.id);
   const navUrl  = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
   const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(place.name+' '+place.area+' Tokyo')}`;
   const tags = (place.tags||[]).map(t=>`<span class="tag tag-${t.type}">${t.text}</span>`).join('');
-  const deleteRow = place.custom ? `<button class="btn btn-danger" onclick="deleteCustomPlace('${place.id}')">✕ 移除這個景點</button>` : '';
+  const del = place.custom?`<button class="btn btn-danger" onclick="deleteCustomPlace('${place.id}')">✕ 移除這個景點</button>`:'';
   return `<div class="place-card ${isVisited?'visited':''}" id="card-${place.id}">
     <div class="card-top"><div class="place-name">${place.emoji} ${place.name}</div>
     <button class="visit-btn" onclick="toggleVisited('${place.id}')">${isVisited?'✓':'○'}</button></div>
@@ -286,23 +339,23 @@ function renderCard(place) {
     ${tags?`<div class="tags">${tags}</div>`:''}
     ${place.note?`<div class="place-note">${place.note}</div>`:''}
     <div class="card-actions"><a class="btn" href="${mapsUrl}" target="_blank">查看位置</a><a class="btn btn-primary" href="${navUrl}" target="_blank">→ 導航</a></div>
-    ${deleteRow}
+    ${del}
   </div>`;
 }
-
 function renderCategory(cat) {
   const all = getAllPlaces();
   if (cat==='all') {
-    const cats = ['cafe','stationery','shopping','clothes','electronics','market'];
-    const labels = {cafe:'☕ 咖啡廳',stationery:'✏️ 文具選品',shopping:'🛍 逛街選品',clothes:'👕 買衣服',electronics:'🔌 電器行',market:'🎪 市集'};
-    return cats.map(c=>`<div class="section-label">${labels[c]}</div>`+all.filter(p=>p.category===c).map(renderCard).join('')).join('');
+    return getAllCatDefs().map(c=>{
+      const places = all.filter(p=>p.category===c.id);
+      if (!places.length) return '';
+      return `<div class="section-label">${c.label||c.emoji+' '+c.name}</div>`+places.map(renderCard).join('');
+    }).join('');
   }
   return all.filter(p=>p.category===cat).map(renderCard).join('');
 }
-
 function renderChecklist() {
-  const render = (items,type,id) => {
-    document.getElementById(id).innerHTML = items.map((item,i)=>`
+  const render=(items,type,id)=>{
+    document.getElementById(id).innerHTML=items.map((item,i)=>`
       <div class="check-item ${item.checked?'checked':''}">
         <div class="check-box" onclick="toggleCheck('${type}',${i})">${item.checked?'✓':''}</div>
         <input class="check-text" value="${item.text.replace(/"/g,'&quot;')}" onchange="editItem('${type}',${i},this.value)" ${item.checked?'disabled':''}>
@@ -312,131 +365,145 @@ function renderChecklist() {
   render(packingItems,'packing','packing-list');
   render(prepItems,'prep','prep-list');
 }
-
-function toggleCheck(type,i){ const a=type==='packing'?packingItems:prepItems; a[i].checked=!a[i].checked; save();renderChecklist(); }
-function editItem(type,i,v){ const a=type==='packing'?packingItems:prepItems; a[i].text=v; save(); }
-function deleteItem(type,i){ if(type==='packing')packingItems.splice(i,1); else prepItems.splice(i,1); save();renderChecklist(); }
-function addItem(type){ const inp=document.getElementById(`${type}-input`); const t=inp.value.trim(); if(!t)return; if(type==='packing')packingItems.push({text:t,checked:false}); else prepItems.push({text:t,checked:false}); inp.value=''; save();renderChecklist(); }
-function toggleVisited(id){ visitedPlaces=visitedPlaces.includes(id)?visitedPlaces.filter(v=>v!==id):[...visitedPlaces,id]; save();renderAll(); }
-function deleteCustomPlace(id){ customPlaces=customPlaces.filter(p=>p.id!==id); save(); const m=markers[id]; if(m){m.marker.map=null;} delete markers[id]; renderAll(); }
-
-function updateStats() {
-  document.getElementById('total-count').textContent = getAllPlaces().length;
-  document.getElementById('visited-count').textContent = visitedPlaces.length;
+function toggleCheck(type,i){const a=type==='packing'?packingItems:prepItems;a[i].checked=!a[i].checked;save();renderChecklist();}
+function editItem(type,i,v){const a=type==='packing'?packingItems:prepItems;a[i].text=v;save();}
+function deleteItem(type,i){if(type==='packing')packingItems.splice(i,1);else prepItems.splice(i,1);save();renderChecklist();}
+function addItem(type){const inp=document.getElementById(`${type}-input`);const t=inp.value.trim();if(!t)return;if(type==='packing')packingItems.push({text:t,checked:false});else prepItems.push({text:t,checked:false});inp.value='';save();renderChecklist();}
+function toggleVisited(id){visitedPlaces=visitedPlaces.includes(id)?visitedPlaces.filter(v=>v!==id):[...visitedPlaces,id];save();renderAll();}
+function deleteCustomPlace(id){
+  customPlaces=customPlaces.filter(p=>p.id!==id);save();
+  const m=markers[id];if(m)m.marker.map=null;delete markers[id];
+  renderAll();
 }
-function renderAll() {
-  ['all','cafe','stationery','shopping','clothes','electronics','market'].forEach(cat=>{
-    const el=document.getElementById(`panel-${cat}`); if(el) el.innerHTML=renderCategory(cat);
+function updateStats(){
+  document.getElementById('total-count').textContent=getAllPlaces().length;
+  document.getElementById('visited-count').textContent=visitedPlaces.length;
+}
+function renderAll(){
+  ensurePanels(); renderTabs();
+  ['all',...getAllCatDefs().map(c=>c.id)].forEach(cat=>{
+    const el=document.getElementById(`panel-${cat}`);if(el)el.innerHTML=renderCategory(cat);
   });
-  renderChecklist(); updateStats(); updateMapMarkers();
+  renderChecklist();updateStats();updateMapMarkers();
 }
 
 // ── Google Maps ──
-let map, markers={}, openInfoWindow=null;
-
-function makeMarkerEl(place, isVisited) {
-  const color = isVisited?'#ccc':place.color;
-  const opacity = isVisited?0.45:1;
-  const shortName = place.name.length>10?place.name.slice(0,10)+'…':place.name;
-  const el = document.createElement('div');
-  el.style.cssText = `display:flex;flex-direction:column;align-items:center;opacity:${opacity};cursor:pointer`;
-  el.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;font-size:14px;background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid #e0dbd2">${shortName}</div>`;
+let map,markers={},openInfoWindow=null;
+function makeMarkerEl(place,isVisited){
+  const color=isVisited?'#ccc':place.color;
+  const opacity=isVisited?0.45:1;
+  const shortName=place.name.length>10?place.name.slice(0,10)+'…':place.name;
+  const el=document.createElement('div');
+  el.style.cssText=`display:flex;flex-direction:column;align-items:center;opacity:${opacity};cursor:pointer`;
+  el.innerHTML=`<div style="width:30px;height:30px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;font-size:14px;background:${color}">${place.emoji}</div><div style="margin-top:3px;background:white;color:#2a2218;font-family:'Zen Kaku Gothic New',sans-serif;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid #e0dbd2">${shortName}</div>`;
   return el;
 }
-
-function addMarker(place) {
-  const navUrl = `https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
-  const marker = new google.maps.marker.AdvancedMarkerElement({
-    map, position:{lat:place.lat,lng:place.lng},
-    content: makeMarkerEl(place, visitedPlaces.includes(place.id))
-  });
-  const infoWindow = new google.maps.InfoWindow({
-    content:`<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours||''}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,
-    maxWidth:220
-  });
-  marker.addListener('gmp-click', ()=>{ if(openInfoWindow)openInfoWindow.close(); infoWindow.open({anchor:marker,map}); openInfoWindow=infoWindow; });
-  markers[place.id]={marker,infoWindow};
+function addMarker(place){
+  const navUrl=`https://maps.google.com/?daddr=${place.lat},${place.lng}&dirflg=r`;
+  const marker=new google.maps.marker.AdvancedMarkerElement({map,position:{lat:place.lat,lng:place.lng},content:makeMarkerEl(place,visitedPlaces.includes(place.id))});
+  const iw=new google.maps.InfoWindow({content:`<div class="popup-inner"><div class="popup-name">${place.emoji} ${place.name}</div><div class="popup-area">${place.area}</div><div class="popup-hours">${place.hours||''}</div><a class="popup-nav" href="${navUrl}" target="_blank">→ Google Maps 導航</a></div>`,maxWidth:220});
+  marker.addListener('gmp-click',()=>{if(openInfoWindow)openInfoWindow.close();iw.open({anchor:marker,map});openInfoWindow=iw;});
+  markers[place.id]={marker,iw};
 }
-
-function updateMapMarkers() {
-  if (!map) return;
-  getAllPlaces().forEach(place=>{ const m=markers[place.id]; if(m) m.marker.content=makeMarkerEl(place,visitedPlaces.includes(place.id)); });
+function updateMapMarkers(){
+  if(!map)return;
+  getAllPlaces().forEach(place=>{const m=markers[place.id];if(m)m.marker.content=makeMarkerEl(place,visitedPlaces.includes(place.id));});
 }
-
-function initMap() {
-  map = new google.maps.Map(document.getElementById('map'), {
-    center:{lat:35.681,lng:139.752}, zoom:12, mapId:'DEMO_MAP_ID'
-  });
+function initMap(){
+  map=new google.maps.Map(document.getElementById('map'),{center:{lat:35.681,lng:139.752},zoom:12,mapId:'DEMO_MAP_ID'});
   getAllPlaces().forEach(addMarker);
+  map.addListener('click',(e)=>{
+    if(e.placeId){
+      e.stop();
+      const svc=new google.maps.places.PlacesService(map);
+      svc.getDetails({placeId:e.placeId,fields:['name','geometry','vicinity']},(result,status)=>{
+        const ok=status===google.maps.places.PlacesServiceStatus.OK;
+        openAddModal({
+          name: ok?result.name:'',
+          lat:  ok?result.geometry.location.lat():e.latLng.lat(),
+          lng:  ok?result.geometry.location.lng():e.latLng.lng(),
+          area: ok?result.vicinity?.split(/[,，]/)[0].trim()||'':''
+        });
+      });
+    } else {
+      openAddModal({lat:e.latLng.lat(),lng:e.latLng.lng()});
+    }
+  });
 }
 
 // ── Add Place Modal ──
-let newPlaceLat=null, newPlaceLng=null, placesAC=null, selectedEmoji='📍';
+let newPlaceLat=null,newPlaceLng=null,placesAC=null,selectedPlaceEmoji='📍',selectedCatEmoji='📂';
 
-function openAddModal() {
+function updateCategorySelect(){
+  const sel=document.getElementById('new-place-category');
+  sel.innerHTML=[
+    ...BASE_CATS.map(c=>`<option value="${c.id}">${c.label}</option>`),
+    ...customCategories.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`),
+    `<option value="__new__">＋ 新增分類...</option>`,
+  ].join('');
+}
+function onCatSelectChange(){
+  const isNew=document.getElementById('new-place-category').value==='__new__';
+  document.getElementById('new-cat-box').classList.toggle('show',isNew);
+}
+function openAddModal(prefill){
   document.getElementById('add-modal').classList.add('active');
-  document.getElementById('new-place-search').value='';
-  document.getElementById('new-place-area').value='';
+  document.getElementById('new-place-search').value=prefill?.name||'';
+  document.getElementById('new-place-area').value=prefill?.area||'';
   document.getElementById('new-place-hours').value='';
   document.getElementById('new-place-note').value='';
-  newPlaceLat=null; newPlaceLng=null;
-  selectEmoji(document.querySelector('.emoji-opt'));
-  if (!placesAC && window.google && google.maps.places) {
-    placesAC = new google.maps.places.Autocomplete(
-      document.getElementById('new-place-search'),
-      { componentRestrictions:{country:'jp'}, fields:['name','geometry','vicinity'] }
-    );
-    placesAC.addListener('place_changed', ()=>{
-      const p = placesAC.getPlace();
-      if (!p.geometry) return;
-      newPlaceLat = p.geometry.location.lat();
-      newPlaceLng = p.geometry.location.lng();
-      document.getElementById('new-place-search').value = p.name;
-      if (p.vicinity) {
-        const parts = p.vicinity.split(/[,，]/);
-        document.getElementById('new-place-area').value = parts[0].trim();
-      }
+  document.getElementById('new-cat-box').classList.remove('show');
+  document.getElementById('new-cat-name').value='';
+  newPlaceLat=prefill?.lat??null;newPlaceLng=prefill?.lng??null;
+  updateCategorySelect();
+  selectPlaceEmoji(document.querySelector('#place-emoji-row .emoji-opt'));
+  selectCatEmoji(document.querySelector('#cat-emoji-row .emoji-opt'));
+  if(!placesAC&&window.google&&google.maps.places){
+    placesAC=new google.maps.places.Autocomplete(document.getElementById('new-place-search'),{componentRestrictions:{country:'jp'},fields:['name','geometry','vicinity']});
+    placesAC.addListener('place_changed',()=>{
+      const p=placesAC.getPlace();if(!p.geometry)return;
+      newPlaceLat=p.geometry.location.lat();newPlaceLng=p.geometry.location.lng();
+      document.getElementById('new-place-search').value=p.name;
+      if(p.vicinity){document.getElementById('new-place-area').value=p.vicinity.split(/[,，]/)[0].trim();}
     });
   }
 }
-function closeAddModal() { document.getElementById('add-modal').classList.remove('active'); }
-function selectEmoji(el) {
-  document.querySelectorAll('.emoji-opt').forEach(e=>e.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedEmoji = el.dataset.emoji;
-}
-function saveNewPlace() {
-  const name = document.getElementById('new-place-search').value.trim();
-  if (!name) { alert('請輸入地點名稱'); return; }
-  if (!newPlaceLat) { alert('請從搜尋建議中選擇一個地點，讓系統取得座標'); return; }
-  const category = document.getElementById('new-place-category').value;
-  const place = {
-    id: 'custom-' + Date.now(),
-    name, category,
-    area:  document.getElementById('new-place-area').value.trim()  || '東京',
-    hours: document.getElementById('new-place-hours').value.trim() || '請確認營業時間',
-    note:  document.getElementById('new-place-note').value.trim(),
-    emoji: selectedEmoji,
-    color: CATEGORY_COLORS[category] || '#999',
-    lat: newPlaceLat, lng: newPlaceLng,
-    tags: [], closedDays: [], custom: true
+function closeAddModal(){document.getElementById('add-modal').classList.remove('active');}
+function selectPlaceEmoji(el){document.querySelectorAll('#place-emoji-row .emoji-opt').forEach(e=>e.classList.remove('selected'));el.classList.add('selected');selectedPlaceEmoji=el.dataset.emoji;}
+function selectCatEmoji(el){document.querySelectorAll('#cat-emoji-row .emoji-opt').forEach(e=>e.classList.remove('selected'));el.classList.add('selected');selectedCatEmoji=el.dataset.emoji;}
+
+function saveNewPlace(){
+  const name=document.getElementById('new-place-search').value.trim();
+  if(!name){alert('請輸入地點名稱');return;}
+  if(!newPlaceLat){alert('請從搜尋建議選擇地點，或直接點擊地圖上的位置');return;}
+
+  let category=document.getElementById('new-place-category').value;
+  if(category==='__new__'){
+    const catName=document.getElementById('new-cat-name').value.trim();
+    if(!catName){alert('請輸入新分類名稱');return;}
+    const newCat={
+      id:'cat-'+Date.now(), name:catName, emoji:selectedCatEmoji,
+      color:EXTRA_CAT_COLORS[customCategories.length%EXTRA_CAT_COLORS.length]
+    };
+    customCategories.push(newCat);
+    category=newCat.id;
+  }
+
+  const catDef=getCatDef(category);
+  const place={
+    id:'custom-'+Date.now(), name, category,
+    area: document.getElementById('new-place-area').value.trim()||'東京',
+    hours:document.getElementById('new-place-hours').value.trim()||'請確認營業時間',
+    note: document.getElementById('new-place-note').value.trim(),
+    emoji:selectedPlaceEmoji, color:catDef?.color||'#999',
+    lat:newPlaceLat, lng:newPlaceLng,
+    tags:[], closedDays:[], custom:true
   };
   customPlaces.push(place);
   save();
-  if (map) addMarker(place);
+  if(map)addMarker(place);
   renderAll();
   closeAddModal();
-}
-
-// ── Tabs ──
-const ALL_TABS=['map','all','cafe','stationery','shopping','clothes','electronics','market','checklist'];
-const LIST_TABS=ALL_TABS.slice(1);
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ALL_TABS[i]===tab));
-  const isMap=tab==='map';
-  document.getElementById('panel-map').classList.toggle('active',isMap);
-  document.getElementById('list-content').classList.toggle('active',!isMap);
-  LIST_TABS.forEach(t=>{ const el=document.getElementById(`panel-${t}`); if(el)el.classList.toggle('active',t===tab); });
 }
 
 renderAll();
