@@ -134,12 +134,14 @@
   .tl-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:border-color .15s;}
   .tl-card:hover{border-color:#c8c0b4;}
   .tl-place-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
-  .tl-place-meta{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
-  .tl-note{width:100%;border:1px dashed transparent;background:transparent;font-size:12px;color:#666;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;resize:none;padding:3px 5px;border-radius:4px;min-height:22px;line-height:1.5;transition:border-color .15s;}
+  .tl-place-meta{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:5px;overflow-wrap:break-word;word-break:break-all;}
+  .tl-note{width:100%;border:1px dashed transparent;background:transparent;font-size:12px;color:#666;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;resize:none;padding:3px 5px;border-radius:4px;min-height:22px;max-height:120px;overflow-y:auto;line-height:1.5;transition:border-color .15s;}
   .tl-note:focus{border-color:var(--border);background:var(--bg);}
   .tl-note::placeholder{color:var(--text-muted);}
   .tl-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
-  .tl-move-btns{display:flex;gap:2px;}
+  .tl-drag-handle{cursor:grab;padding:6px 10px;color:#ccc;font-size:16px;touch-action:none;user-select:none;-webkit-user-select:none;line-height:1;border-radius:4px;}
+  .tl-drag-handle:hover{color:var(--accent2);}
+  .tl-item-dragging{opacity:.6;box-shadow:0 8px 24px rgba(0,0,0,.18);border-radius:10px;}
   .tl-btn-sm{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:2px 5px;border-radius:4px;transition:all .12s;}
   .tl-btn-sm:hover{color:var(--text);background:var(--bg);}
   .tl-btn-danger:hover{color:#d05030!important;background:#fff5f2!important;}
@@ -912,15 +914,14 @@ function renderOneDayView(day){
     h+=`<div class="itin-empty"><div class="itin-empty-icon">🗓</div>今天還沒有行程<br>點下方按鈕從景點清單選擇</div>`;
   } else {
     h+=`<div class="tl-wrap">`;
-    const total=day.items.length;
-    day.items.forEach((item,idx)=>{
+    day.items.forEach((item)=>{
       if(item.type==='place'){
         const place=getAllPlaces().find(p=>p.id===item.placeId);
-        h+=renderTlPlaceItem(item,place,day.id,idx,total);
+        h+=renderTlPlaceItem(item,place,day.id);
       } else if(item.type==='flight'){
-        h+=renderTlFlightItem(item,day.id,idx,total);
+        h+=renderTlFlightItem(item,day.id);
       } else {
-        h+=renderTlTransportItem(item,day.id,idx,total);
+        h+=renderTlTransportItem(item,day.id);
       }
       const next=day.items[idx+1];
       if((item.type==='place'||item.type==='flight')&&(!next||next.type!=='transport')){
@@ -933,7 +934,7 @@ function renderOneDayView(day){
   h+=`<button class="itin-add-flight-btn" onclick="openFlightModal('${day.id}',null)">✈ 新增航班</button>`;
   return h;
 }
-function renderTlPlaceItem(item,place,dayId,idx,total){
+function renderTlPlaceItem(item,place,dayId){
   const isCustom=!place;
   const dotColor=isCustom?'#bbb':place.color||'var(--accent2)';
   const timeLabel=item.time||'──';
@@ -942,37 +943,31 @@ function renderTlPlaceItem(item,place,dayId,idx,total){
     ?`<div class="tl-place-name" contenteditable="true" spellcheck="false" onblur="updateItinItemName('${dayId}','${item.id}',this.textContent)" style="outline:none;border-bottom:1px dashed var(--border)">📍 ${(item.customName||'').replace(/</g,'&lt;')}</div>`
     :`<div class="tl-place-name">${place.emoji} ${place.name}</div>`;
   const metaHtml=isCustom?'':`<div class="tl-place-meta">${place.area}${place.hours?' · '+place.hours:''}</div>`;
-  return `<div class="tl-place-item">
+  return `<div class="tl-place-item" data-item-id="${item.id}">
     <div class="tl-dot" style="background:${dotColor};box-shadow:0 0 0 2px ${dotColor}"></div>
     <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${timeLabel}</span>
     <div class="tl-card">
       ${nameHtml}${metaHtml}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       <div class="tl-card-footer">
-        <div class="tl-move-btns">
-          ${idx>0?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移">↑</button>`:'<span style="width:26px"></span>'}
-          ${idx<total-1?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移">↓</button>`:'<span style="width:26px"></span>'}
-        </div>
+        <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序">☰</span>
         <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
       </div>
     </div>
   </div>`;
 }
-function renderTlTransportItem(item,dayId,idx,total){
+function renderTlTransportItem(item,dayId){
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  return `<div class="tl-transport-item">
+  return `<div class="tl-transport-item" data-item-id="${item.id}">
     <div class="tl-transport-dot"></div>
     <div class="tl-tc">
+      <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" style="padding:4px 8px;font-size:13px">☰</span>
       <div class="tl-tc-icon">${item.icon||'🚌'}</div>
       <div class="tl-tc-info">
         <div class="tl-tc-mode">${item.mode}${item.duration?' · '+item.duration:''}</div>
         <textarea class="tl-tc-note" placeholder="路線備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       </div>
-      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
-        ${idx>0?`<button class="tl-tc-remove" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移" style="font-size:10px">↑</button>`:'<span style="height:18px"></span>'}
-        ${idx<total-1?`<button class="tl-tc-remove" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移" style="font-size:10px">↓</button>`:'<span style="height:18px"></span>'}
-        <button class="tl-tc-remove" onclick="removeItinItem('${dayId}','${item.id}')">✕</button>
-      </div>
+      <button class="tl-tc-remove" onclick="removeItinItem('${dayId}','${item.id}')">✕</button>
     </div>
   </div>`;
 }
@@ -988,12 +983,60 @@ function editItinTime(dayId,itemId,el){
 function updateItinTime(dayId,itemId,time){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;const it=d.items.find(i=>i.id===itemId);if(it){it.time=time;save();}}
 function updateItinNote(dayId,itemId,note){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;const it=d.items.find(i=>i.id===itemId);if(it){it.note=note;save();}}
 function removeItinItem(dayId,itemId){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;d.items=d.items.filter(i=>i.id!==itemId);save();renderItinerary();}
-function moveItinItem(dayId,itemId,dir){
-  const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;
-  const idx=d.items.findIndex(i=>i.id===itemId);if(idx===-1)return;
-  const newIdx=idx+dir;if(newIdx<0||newIdx>=d.items.length)return;
-  [d.items[idx],d.items[newIdx]]=[d.items[newIdx],d.items[idx]];
-  save();renderItinerary();
+// ── Drag-to-reorder ──
+let _drag = null;
+
+function startItemDrag(e, dayId, itemId) {
+  e.preventDefault();
+  const content = document.getElementById('itin-day-content');
+  const itemEl = content.querySelector(`[data-item-id="${itemId}"]`);
+  if (!itemEl) return;
+  const allEls = [...content.querySelectorAll('[data-item-id]')];
+  const rects = allEls.map(el => ({ id: el.dataset.itemId, el, top: el.getBoundingClientRect().top, h: el.getBoundingClientRect().height }));
+  itemEl.classList.add('tl-item-dragging');
+  itemEl.style.cssText = 'position:relative;z-index:50;transition:none;';
+  _drag = { dayId, itemId, itemEl, rects, startY: e.clientY, dy: 0 };
+  document.addEventListener('pointermove', _onDragMove, { passive: false });
+  document.addEventListener('pointerup', _onDragEnd);
+  document.addEventListener('pointercancel', _onDragEnd);
+}
+
+function _onDragMove(e) {
+  if (!_drag) return;
+  e.preventDefault();
+  _drag.dy = e.clientY - _drag.startY;
+  _drag.itemEl.style.transform = `translateY(${_drag.dy}px)`;
+}
+
+function _onDragEnd(e) {
+  if (!_drag) return;
+  const { dayId, itemId, itemEl, rects, dy } = _drag;
+  itemEl.classList.remove('tl-item-dragging');
+  itemEl.style.cssText = '';
+  document.removeEventListener('pointermove', _onDragMove);
+  document.removeEventListener('pointerup', _onDragEnd);
+  document.removeEventListener('pointercancel', _onDragEnd);
+  _drag = null;
+
+  const self = rects.find(r => r.id === itemId);
+  if (!self) { renderItinerary(); return; }
+  const dragCY = self.top + self.h / 2 + dy;
+  const others = rects.filter(r => r.id !== itemId);
+  let toId = null, insertAfter = false;
+  for (let i = 0; i < others.length; i++) {
+    const mid = others[i].top + others[i].h / 2;
+    if (dragCY <= mid) { toId = others[i].id; insertAfter = false; break; }
+    toId = others[i].id; insertAfter = true;
+  }
+  const day = itineraryDays.find(d => d.id === dayId);
+  if (day && toId && toId !== itemId) {
+    const fromIdx = day.items.findIndex(i => i.id === itemId);
+    const [moved] = day.items.splice(fromIdx, 1);
+    const toIdx = day.items.findIndex(i => i.id === toId);
+    day.items.splice(insertAfter ? toIdx + 1 : toIdx, 0, moved);
+    save();
+  }
+  renderItinerary();
 }
 function updateDayDate(dayId,date){const d=itineraryDays.find(d=>d.id===dayId);if(d){d.date=date.trim();save();}}
 function addItineraryDay(){
@@ -1088,9 +1131,9 @@ function saveTransportItem(){
   save();closeItinTransportModal();renderItinerary();
 }
 
-function renderTlFlightItem(item,dayId,idx,total){
+function renderTlFlightItem(item,dayId){
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  return `<div class="tl-place-item">
+  return `<div class="tl-place-item" data-item-id="${item.id}">
     <div class="tl-dot" style="background:#4a7aaa;box-shadow:0 0 0 2px #4a7aaa"></div>
     <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${item.time||'──'}</span>
     <div class="tl-flight-card">
@@ -1111,10 +1154,7 @@ function renderTlFlightItem(item,dayId,idx,total){
       ${item.aircraft?`<div class="tl-flight-info">${item.aircraft}</div>`:''}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       <div class="tl-card-footer">
-        <div class="tl-move-btns">
-          ${idx>0?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移">↑</button>`:'<span style="width:26px"></span>'}
-          ${idx<total-1?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移">↓</button>`:'<span style="width:26px"></span>'}
-        </div>
+        <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序">☰</span>
         <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
       </div>
     </div>
