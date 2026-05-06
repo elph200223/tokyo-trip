@@ -330,7 +330,11 @@
   <div class="modal-sheet">
     <div class="modal-title">新增到行程</div>
     <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-      <div class="modal-label" style="margin-bottom:6px">自由輸入（任何地點或事項）</div>
+      <div class="modal-label" style="margin-bottom:6px">搜尋地點（Google Maps）</div>
+      <input class="modal-input" id="itin-place-search" placeholder="搜尋飯店、餐廳、景點…" autocomplete="off">
+    </div>
+    <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div class="modal-label" style="margin-bottom:6px">自由輸入（任何事項）</div>
       <div style="display:flex;gap:8px">
         <input class="modal-input" id="itin-custom-input" placeholder="例：買便利商店早餐、飯店 check-in…" onkeydown="if(event.key==='Enter')addCustomItinItem()">
         <button class="add-btn" onclick="addCustomItinItem()" style="white-space:nowrap">新增</button>
@@ -787,7 +791,7 @@ function initMap(){
 }
 
 // ── Add Place Modal ──
-let newPlaceLat=null,newPlaceLng=null,newPlaceClosedDays=[],placesAC=null,selectedPlaceEmoji='📍',selectedCatEmoji='📂';
+let newPlaceLat=null,newPlaceLng=null,newPlaceClosedDays=[],placesAC=null,itinAC=null,selectedPlaceEmoji='📍',selectedCatEmoji='📂';
 
 function parseOpeningHours(weekdayText){
   if(!weekdayText||!weekdayText.length)return{text:'',closedDays:[]};
@@ -1056,8 +1060,27 @@ function openItinPlaceModal(dayId,afterItemId){
   itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;
   document.getElementById('itin-custom-input').value='';
   document.getElementById('itin-place-filter').value='';
+  document.getElementById('itin-place-search').value='';
   filterItinPlaces('');
   document.getElementById('itin-place-modal').classList.add('active');
+  if(!itinAC&&window.google&&google.maps.places){
+    itinAC=new google.maps.places.Autocomplete(
+      document.getElementById('itin-place-search'),
+      {componentRestrictions:{country:'jp'},fields:['name']}
+    );
+    itinAC.addListener('place_changed',()=>{
+      const p=itinAC.getPlace();
+      if(!p.name)return;
+      _addItinItemByName(p.name);
+    });
+  }
+}
+function _addItinItemByName(name){
+  const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
+  const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
+  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+  else day.items.push(newItem);
+  save();closeItinPlaceModal();renderItinerary();
 }
 function closeItinPlaceModal(){document.getElementById('itin-place-modal').classList.remove('active');}
 function filterItinPlaces(q){
