@@ -167,6 +167,25 @@
   .transport-modes{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;}
   .tm-opt{padding:8px 11px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:13px;cursor:pointer;transition:all .12s;}
   .tm-opt.selected{border-color:var(--accent);background:#f5ede6;}
+  .itin-add-flight-btn{width:100%;padding:10px;border:1.5px dashed #b0ccee;border-radius:10px;background:transparent;color:#4a7aaa;font-size:13px;font-weight:700;font-family:'Zen Kaku Gothic New',sans-serif;cursor:pointer;margin-top:8px;transition:all .15s;}
+  .itin-add-flight-btn:hover{border-color:#4a7aaa;background:#f0f5fc;}
+  .tl-flight-card{background:var(--surface);border:1px solid #c8ddf0;border-radius:10px;padding:10px 12px;background:linear-gradient(135deg,#f8fbff 0%,#fff 100%);}
+  .tl-flight-no{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#4a7aaa;margin-bottom:8px;}
+  .tl-flight-route{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .tl-flight-ap{text-align:center;flex:0 0 auto;}
+  .tl-flight-time{font-size:17px;font-weight:900;color:var(--text);font-family:'DM Mono',monospace;line-height:1.1;}
+  .tl-flight-iata{font-size:11px;color:#4a7aaa;font-family:'DM Mono',monospace;font-weight:700;}
+  .tl-flight-city{font-size:9px;color:var(--text-muted);white-space:nowrap;}
+  .tl-flight-sep{flex:1;text-align:center;color:#b0ccee;font-size:11px;}
+  .tl-flight-info{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+  .flight-api-box{background:#f0f5fc;border:1px solid #c8ddf0;border-radius:8px;padding:12px;margin-bottom:12px;}
+  .flight-preview-box{background:#f0f5fc;border:1px solid #c8ddf0;border-radius:10px;padding:13px;margin:12px 0;}
+  .fp-route{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .fp-ap{text-align:center;flex:0 0 auto;}
+  .fp-time{font-size:20px;font-weight:900;font-family:'DM Mono',monospace;color:var(--text);line-height:1.1;}
+  .fp-iata{font-size:12px;color:#4a7aaa;font-family:'DM Mono',monospace;font-weight:700;}
+  .fp-city{font-size:10px;color:var(--text-muted);}
+  .fp-sep{flex:1;text-align:center;color:#b0ccee;}
 </style>
 </head>
 <body>
@@ -215,10 +234,10 @@
 
 <nav class="bottom-nav">
   <button class="bn-btn active" data-section="places" onclick="switchMainSection('places')">
-    <span class="bn-icon">🗺</span><span class="bn-label">景點</span>
+    <span class="bn-label">景點</span>
   </button>
   <button class="bn-btn" data-section="itinerary" onclick="switchMainSection('itinerary')">
-    <span class="bn-icon">📅</span><span class="bn-label">行程</span>
+    <span class="bn-label">行程</span>
   </button>
 </nav>
 
@@ -333,6 +352,41 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeItinTransportModal()" style="flex:0.6">取消</button>
       <button class="btn btn-primary" onclick="saveTransportItem()">加入行程</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="itin-flight-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">✈ 新增航班</div>
+    <div id="flight-api-setup" class="flight-api-box" style="display:none">
+      <div class="modal-label" style="margin-bottom:5px">RapidAPI Key</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="modal-input" id="rapidapi-key-input" type="password" placeholder="貼上你的 RapidAPI Key">
+        <button class="add-btn" onclick="saveFlightApiKey()" style="white-space:nowrap">儲存</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
+        取得免費 Key：<br>
+        1. 前往 rapidapi.com → 搜尋 <b>AeroDataBox</b><br>
+        2. Subscribe → Basic（免費，500次/月）<br>
+        3. 複製 X-RapidAPI-Key 貼上
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">航班號碼</div>
+      <input class="modal-input" id="flight-number-input" placeholder="例：CI105、BR178、NH849" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">出發日期</div>
+      <input class="modal-input" id="flight-date-input" type="date" value="2026-06-03">
+    </div>
+    <div id="flight-preview-area"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeFlightModal()" style="flex:0.6">取消</button>
+      <button class="btn btn-primary" id="flight-action-btn" onclick="searchFlight()">查詢航班</button>
+    </div>
+    <div style="text-align:right;margin-top:8px;display:none" id="flight-key-reset-wrap">
+      <button onclick="resetFlightApiKey()" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline">更換 API Key</button>
     </div>
   </div>
 </div>
@@ -704,17 +758,20 @@ function renderOneDayView(day){
       if(item.type==='place'){
         const place=getAllPlaces().find(p=>p.id===item.placeId);
         h+=renderTlPlaceItem(item,place,day.id);
+      } else if(item.type==='flight'){
+        h+=renderTlFlightItem(item,day.id);
       } else {
         h+=renderTlTransportItem(item,day.id);
       }
       const next=day.items[idx+1];
-      if(item.type==='place'&&(!next||next.type==='place')){
+      if((item.type==='place'||item.type==='flight')&&(!next||next.type!=='transport')){
         h+=`<div class="tl-gap"><button class="tl-gap-btn" title="插入交通方式" onclick="openItinTransportModal('${day.id}','${item.id}')">↕</button></div>`;
       }
     });
     h+=`</div>`;
   }
   h+=`<button class="itin-add-place-btn" onclick="openItinPlaceModal('${day.id}',null)">＋ 新增地點到今天</button>`;
+  h+=`<button class="itin-add-flight-btn" onclick="openFlightModal('${day.id}',null)">✈ 新增航班</button>`;
   return h;
 }
 function renderTlPlaceItem(item,place,dayId){
@@ -837,6 +894,117 @@ function saveTransportItem(){
   if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
   else day.items.push(newItem);
   save();closeItinTransportModal();renderItinerary();
+}
+
+function renderTlFlightItem(item,dayId){
+  const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  return `<div class="tl-place-item">
+    <div class="tl-dot" style="background:#4a7aaa;box-shadow:0 0 0 2px #4a7aaa"></div>
+    <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${item.time||'──'}</span>
+    <div class="tl-flight-card">
+      <div class="tl-flight-no">✈ ${item.flightNumber}${item.airline?' · '+item.airline:''}</div>
+      <div class="tl-flight-route">
+        <div class="tl-flight-ap">
+          <div class="tl-flight-time">${item.depTime||'──'}</div>
+          <div class="tl-flight-iata">${item.depAirport||'---'}</div>
+          <div class="tl-flight-city">${item.depCity||''}</div>
+        </div>
+        <div class="tl-flight-sep">────→</div>
+        <div class="tl-flight-ap">
+          <div class="tl-flight-time">${item.arrTime||'──'}</div>
+          <div class="tl-flight-iata">${item.arrAirport||'---'}</div>
+          <div class="tl-flight-city">${item.arrCity||''}</div>
+        </div>
+      </div>
+      ${item.aircraft?`<div class="tl-flight-info">${item.aircraft}</div>`:''}
+      <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
+      <div class="tl-card-footer"><button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button></div>
+    </div>
+  </div>`;
+}
+
+// ── Flight lookup ──
+let pendingFlightData=null,flightTargetDayId=null,flightInsertAfterItemId=null;
+function openFlightModal(dayId,afterItemId){
+  flightTargetDayId=dayId;flightInsertAfterItemId=afterItemId;
+  pendingFlightData=null;
+  document.getElementById('flight-number-input').value='';
+  document.getElementById('flight-preview-area').innerHTML='';
+  const btn=document.getElementById('flight-action-btn');btn.textContent='查詢航班';btn.disabled=false;btn.onclick=searchFlight;
+  const hasKey=!!localStorage.getItem('aerodbKey');
+  document.getElementById('flight-api-setup').style.display=hasKey?'none':'block';
+  document.getElementById('flight-key-reset-wrap').style.display=hasKey?'block':'none';
+  document.getElementById('itin-flight-modal').classList.add('active');
+}
+function closeFlightModal(){document.getElementById('itin-flight-modal').classList.remove('active');}
+function saveFlightApiKey(){
+  const k=document.getElementById('rapidapi-key-input').value.trim();if(!k)return;
+  localStorage.setItem('aerodbKey',k);
+  document.getElementById('flight-api-setup').style.display='none';
+  document.getElementById('flight-key-reset-wrap').style.display='block';
+}
+function resetFlightApiKey(){
+  localStorage.removeItem('aerodbKey');
+  document.getElementById('rapidapi-key-input').value='';
+  document.getElementById('flight-api-setup').style.display='block';
+  document.getElementById('flight-key-reset-wrap').style.display='none';
+}
+async function searchFlight(){
+  const raw=document.getElementById('flight-number-input').value.trim().toUpperCase().replace(/\s/g,'');
+  const date=document.getElementById('flight-date-input').value;
+  if(!raw){alert('請輸入航班號碼');return;}
+  if(!date){alert('請選擇日期');return;}
+  const key=localStorage.getItem('aerodbKey');
+  if(!key){document.getElementById('flight-api-setup').style.display='block';alert('請先設定 RapidAPI Key');return;}
+  const btn=document.getElementById('flight-action-btn');
+  btn.textContent='查詢中…';btn.disabled=true;
+  try{
+    const resp=await fetch(`https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(raw)}/${date}`,{
+      headers:{'X-RapidAPI-Key':key,'X-RapidAPI-Host':'aerodatabox.p.rapidapi.com'}
+    });
+    if(resp.status===404)throw new Error('找不到此航班，請確認號碼與日期');
+    if(resp.status===401||resp.status===403)throw new Error('API Key 無效，請重新設定');
+    const data=await resp.json();
+    const list=Array.isArray(data)?data:(data.departures||data.arrivals||[data]);
+    if(!list.length)throw new Error('找不到航班資訊');
+    const f=list[0];
+    const dep=f.departure||{};const arr=f.arrival||{};
+    const depTime=(dep.scheduledTime?.local||dep.scheduledTimeLocal||'').slice(11,16);
+    const arrTime=(arr.scheduledTime?.local||arr.scheduledTimeLocal||'').slice(11,16);
+    pendingFlightData={
+      flightNumber:f.number||raw,
+      airline:f.airline?.name||f.airline?.iata||raw.replace(/\d/g,''),
+      depAirport:dep.airport?.iata||dep.airport?.shortName||'',
+      depCity:dep.airport?.municipalityName||dep.airport?.name||'',
+      depTime,
+      arrAirport:arr.airport?.iata||arr.airport?.shortName||'',
+      arrCity:arr.airport?.municipalityName||arr.airport?.name||'',
+      arrTime,
+      aircraft:f.aircraft?.model||f.aircraft?.reg||'',
+    };
+    document.getElementById('flight-preview-area').innerHTML=`
+      <div class="flight-preview-box">
+        <div style="font-size:12px;font-weight:700;color:#4a7aaa;margin-bottom:10px">✈ ${pendingFlightData.flightNumber} · ${pendingFlightData.airline}</div>
+        <div class="fp-route">
+          <div class="fp-ap"><div class="fp-time">${pendingFlightData.depTime||'─'}</div><div class="fp-iata">${pendingFlightData.depAirport}</div><div class="fp-city">${pendingFlightData.depCity}</div></div>
+          <div class="fp-sep">────→</div>
+          <div class="fp-ap"><div class="fp-time">${pendingFlightData.arrTime||'─'}</div><div class="fp-iata">${pendingFlightData.arrAirport}</div><div class="fp-city">${pendingFlightData.arrCity}</div></div>
+        </div>
+        ${pendingFlightData.aircraft?`<div style="font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace">${pendingFlightData.aircraft}</div>`:''}
+      </div>`;
+    btn.textContent='確認加入行程';btn.disabled=false;btn.onclick=confirmAddFlight;
+  }catch(e){
+    alert('查詢失敗：'+e.message);
+    btn.textContent='查詢航班';btn.disabled=false;btn.onclick=searchFlight;
+  }
+}
+function confirmAddFlight(){
+  if(!pendingFlightData)return;
+  const day=itineraryDays.find(d=>d.id===flightTargetDayId);if(!day)return;
+  const newItem={id:'it'+Date.now(),type:'flight',...pendingFlightData,time:pendingFlightData.depTime,note:''};
+  if(flightInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===flightInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+  else day.items.push(newItem);
+  save();closeFlightModal();renderItinerary();
 }
 
 renderAll();
