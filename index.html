@@ -511,7 +511,10 @@ function applyCloudData(data){
   if(data.prep           != null){ prepItems=data.prep;               localStorage.setItem('prepItems',JSON.stringify(prepItems)); }
   if(data.customPlaces   != null){ customPlaces=data.customPlaces;    localStorage.setItem('customPlaces',JSON.stringify(customPlaces)); }
   if(data.customCategories!=null){ customCategories=data.customCategories; localStorage.setItem('customCategories',JSON.stringify(customCategories)); }
-  if(data.itineraryDays  != null){ itineraryDays=data.itineraryDays;  localStorage.setItem('itineraryDays',JSON.stringify(itineraryDays)); }
+  if(data.itineraryDays  != null && (data.itineraryDays.length > 0 || itineraryDays.length === 0)){
+    itineraryDays=data.itineraryDays; localStorage.setItem('itineraryDays',JSON.stringify(itineraryDays));
+  }
+  if(!itineraryDays.length) itineraryDays=[{id:'d1',label:'Day 1',date:'6/3（二）',items:[]}];
   renderAll(); renderItinerary();
 }
 
@@ -918,7 +921,7 @@ function renderOneDayView(day){
     h+=`<div class="itin-empty"><div class="itin-empty-icon">🗓</div>今天還沒有行程<br>點下方按鈕從景點清單選擇</div>`;
   } else {
     h+=`<div class="tl-wrap">`;
-    day.items.forEach((item)=>{
+    day.items.forEach((item,idx)=>{
       if(item.type==='place'){
         const place=getAllPlaces().find(p=>p.id===item.placeId);
         h+=renderTlPlaceItem(item,place,day.id);
