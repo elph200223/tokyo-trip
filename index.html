@@ -125,11 +125,11 @@
   .day-header-title{font-size:15px;font-weight:900;color:var(--accent);}
   .day-header-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);outline:none;border-bottom:1px solid transparent;transition:border-color .15s;}
   .day-header-date:focus{border-bottom-color:var(--accent2);}
-  .tl-wrap{position:relative;padding-left:54px;padding-bottom:8px;}
-  .tl-wrap::before{content:'';position:absolute;left:35px;top:10px;bottom:32px;width:2px;background:var(--border);}
+  .tl-wrap{position:relative;padding-left:76px;padding-bottom:8px;}
+  .tl-wrap::before{content:'';position:absolute;left:60px;top:10px;bottom:32px;width:2px;background:var(--border);}
   .tl-place-item{position:relative;margin-bottom:10px;}
-  .tl-dot{position:absolute;left:-20px;top:14px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 0 2px var(--accent2);}
-  .tl-time-label{position:absolute;right:calc(100% + 6px);top:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap;text-align:right;width:38px;cursor:pointer;transition:color .12s;}
+  .tl-dot{position:absolute;left:-16px;top:14px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 0 2px var(--accent2);}
+  .tl-time-label{position:absolute;left:-76px;top:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap;text-align:right;width:54px;cursor:pointer;transition:color .12s;}
   .tl-time-label:hover{color:var(--accent);}
   .tl-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:border-color .15s;}
   .tl-card:hover{border-color:#c8c0b4;}
@@ -138,7 +138,8 @@
   .tl-note{width:100%;border:1px dashed transparent;background:transparent;font-size:12px;color:#666;font-family:'Zen Kaku Gothic New',sans-serif;outline:none;resize:none;padding:3px 5px;border-radius:4px;min-height:22px;line-height:1.5;transition:border-color .15s;}
   .tl-note:focus{border-color:var(--border);background:var(--bg);}
   .tl-note::placeholder{color:var(--text-muted);}
-  .tl-card-footer{display:flex;justify-content:flex-end;margin-top:4px;}
+  .tl-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+  .tl-move-btns{display:flex;gap:2px;}
   .tl-btn-sm{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:2px 5px;border-radius:4px;transition:all .12s;}
   .tl-btn-sm:hover{color:var(--text);background:var(--bg);}
   .tl-btn-danger:hover{color:#d05030!important;background:#fff5f2!important;}
@@ -755,14 +756,15 @@ function renderOneDayView(day){
     h+=`<div class="itin-empty"><div class="itin-empty-icon">🗓</div>今天還沒有行程<br>點下方按鈕從景點清單選擇</div>`;
   } else {
     h+=`<div class="tl-wrap">`;
+    const total=day.items.length;
     day.items.forEach((item,idx)=>{
       if(item.type==='place'){
         const place=getAllPlaces().find(p=>p.id===item.placeId);
-        h+=renderTlPlaceItem(item,place,day.id);
+        h+=renderTlPlaceItem(item,place,day.id,idx,total);
       } else if(item.type==='flight'){
-        h+=renderTlFlightItem(item,day.id);
+        h+=renderTlFlightItem(item,day.id,idx,total);
       } else {
-        h+=renderTlTransportItem(item,day.id);
+        h+=renderTlTransportItem(item,day.id,idx,total);
       }
       const next=day.items[idx+1];
       if((item.type==='place'||item.type==='flight')&&(!next||next.type!=='transport')){
@@ -775,7 +777,7 @@ function renderOneDayView(day){
   h+=`<button class="itin-add-flight-btn" onclick="openFlightModal('${day.id}',null)">✈ 新增航班</button>`;
   return h;
 }
-function renderTlPlaceItem(item,place,dayId){
+function renderTlPlaceItem(item,place,dayId,idx,total){
   const isCustom=!place;
   const dotColor=isCustom?'#bbb':place.color||'var(--accent2)';
   const timeLabel=item.time||'──';
@@ -790,11 +792,17 @@ function renderTlPlaceItem(item,place,dayId){
     <div class="tl-card">
       ${nameHtml}${metaHtml}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
-      <div class="tl-card-footer"><button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button></div>
+      <div class="tl-card-footer">
+        <div class="tl-move-btns">
+          ${idx>0?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移">↑</button>`:'<span style="width:26px"></span>'}
+          ${idx<total-1?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移">↓</button>`:'<span style="width:26px"></span>'}
+        </div>
+        <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+      </div>
     </div>
   </div>`;
 }
-function renderTlTransportItem(item,dayId){
+function renderTlTransportItem(item,dayId,idx,total){
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   return `<div class="tl-transport-item">
     <div class="tl-transport-dot"></div>
@@ -804,7 +812,11 @@ function renderTlTransportItem(item,dayId){
         <div class="tl-tc-mode">${item.mode}${item.duration?' · '+item.duration:''}</div>
         <textarea class="tl-tc-note" placeholder="路線備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       </div>
-      <button class="tl-tc-remove" onclick="removeItinItem('${dayId}','${item.id}')">✕</button>
+      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+        ${idx>0?`<button class="tl-tc-remove" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移" style="font-size:10px">↑</button>`:'<span style="height:18px"></span>'}
+        ${idx<total-1?`<button class="tl-tc-remove" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移" style="font-size:10px">↓</button>`:'<span style="height:18px"></span>'}
+        <button class="tl-tc-remove" onclick="removeItinItem('${dayId}','${item.id}')">✕</button>
+      </div>
     </div>
   </div>`;
 }
@@ -820,6 +832,13 @@ function editItinTime(dayId,itemId,el){
 function updateItinTime(dayId,itemId,time){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;const it=d.items.find(i=>i.id===itemId);if(it){it.time=time;save();}}
 function updateItinNote(dayId,itemId,note){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;const it=d.items.find(i=>i.id===itemId);if(it){it.note=note;save();}}
 function removeItinItem(dayId,itemId){const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;d.items=d.items.filter(i=>i.id!==itemId);save();renderItinerary();}
+function moveItinItem(dayId,itemId,dir){
+  const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;
+  const idx=d.items.findIndex(i=>i.id===itemId);if(idx===-1)return;
+  const newIdx=idx+dir;if(newIdx<0||newIdx>=d.items.length)return;
+  [d.items[idx],d.items[newIdx]]=[d.items[newIdx],d.items[idx]];
+  save();renderItinerary();
+}
 function updateDayDate(dayId,date){const d=itineraryDays.find(d=>d.id===dayId);if(d){d.date=date.trim();save();}}
 function addItineraryDay(){
   const n=itineraryDays.length+1;
@@ -913,7 +932,7 @@ function saveTransportItem(){
   save();closeItinTransportModal();renderItinerary();
 }
 
-function renderTlFlightItem(item,dayId){
+function renderTlFlightItem(item,dayId,idx,total){
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   return `<div class="tl-place-item">
     <div class="tl-dot" style="background:#4a7aaa;box-shadow:0 0 0 2px #4a7aaa"></div>
@@ -935,7 +954,13 @@ function renderTlFlightItem(item,dayId){
       </div>
       ${item.aircraft?`<div class="tl-flight-info">${item.aircraft}</div>`:''}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
-      <div class="tl-card-footer"><button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button></div>
+      <div class="tl-card-footer">
+        <div class="tl-move-btns">
+          ${idx>0?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',-1)" title="往上移">↑</button>`:'<span style="width:26px"></span>'}
+          ${idx<total-1?`<button class="tl-btn-sm" onclick="moveItinItem('${dayId}','${item.id}',1)" title="往下移">↓</button>`:'<span style="width:26px"></span>'}
+        </div>
+        <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+      </div>
     </div>
   </div>`;
 }
