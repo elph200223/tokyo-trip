@@ -292,9 +292,17 @@
 
 <div class="modal-overlay" id="itin-place-modal">
   <div class="modal-sheet">
-    <div class="modal-title">選擇景點加入行程</div>
+    <div class="modal-title">新增到行程</div>
+    <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div class="modal-label" style="margin-bottom:6px">自由輸入（任何地點或事項）</div>
+      <div style="display:flex;gap:8px">
+        <input class="modal-input" id="itin-custom-input" placeholder="例：買便利商店早餐、飯店 check-in…" onkeydown="if(event.key==='Enter')addCustomItinItem()">
+        <button class="add-btn" onclick="addCustomItinItem()" style="white-space:nowrap">新增</button>
+      </div>
+    </div>
+    <div class="modal-label" style="margin-bottom:6px">從景點清單選擇</div>
     <input class="modal-input" id="itin-place-filter" placeholder="搜尋景點名稱或地區..." oninput="filterItinPlaces(this.value)" style="margin-bottom:4px">
-    <div id="itin-place-list" style="max-height:52vh;overflow-y:auto;margin:0 -16px;padding:0 16px;"></div>
+    <div id="itin-place-list" style="max-height:40vh;overflow-y:auto;margin:0 -16px;padding:0 16px;"></div>
     <div class="modal-actions" style="margin-top:12px">
       <button class="btn" onclick="closeItinPlaceModal()">取消</button>
     </div>
@@ -710,16 +718,19 @@ function renderOneDayView(day){
   return h;
 }
 function renderTlPlaceItem(item,place,dayId){
-  if(!place)return'';
-  const dotColor=place.color||'var(--accent2)';
+  const isCustom=!place;
+  const dotColor=isCustom?'#bbb':place.color||'var(--accent2)';
   const timeLabel=item.time||'──';
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const nameHtml=isCustom
+    ?`<div class="tl-place-name" contenteditable="true" spellcheck="false" onblur="updateItinItemName('${dayId}','${item.id}',this.textContent)" style="outline:none;border-bottom:1px dashed var(--border)">📍 ${(item.customName||'').replace(/</g,'&lt;')}</div>`
+    :`<div class="tl-place-name">${place.emoji} ${place.name}</div>`;
+  const metaHtml=isCustom?'':`<div class="tl-place-meta">${place.area}${place.hours?' · '+place.hours:''}</div>`;
   return `<div class="tl-place-item">
     <div class="tl-dot" style="background:${dotColor};box-shadow:0 0 0 2px ${dotColor}"></div>
     <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${timeLabel}</span>
     <div class="tl-card">
-      <div class="tl-place-name">${place.emoji} ${place.name}</div>
-      <div class="tl-place-meta">${place.area}${place.hours?' · '+place.hours:''}</div>
+      ${nameHtml}${metaHtml}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       <div class="tl-card-footer"><button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button></div>
     </div>
@@ -767,6 +778,7 @@ function removeItinDay(dayId){
 }
 function openItinPlaceModal(dayId,afterItemId){
   itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;
+  document.getElementById('itin-custom-input').value='';
   document.getElementById('itin-place-filter').value='';
   filterItinPlaces('');
   document.getElementById('itin-place-modal').classList.add('active');
@@ -782,6 +794,19 @@ function filterItinPlaces(q){
         <div><div class="place-pick-name">${p.name}</div><div class="place-pick-meta">${p.area}${p.hours?' · '+p.hours:''}</div></div>
       </div>`).join('');
   }).join('');
+}
+function addCustomItinItem(){
+  const name=document.getElementById('itin-custom-input').value.trim();
+  if(!name)return;
+  const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
+  const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
+  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+  else day.items.push(newItem);
+  save();closeItinPlaceModal();renderItinerary();
+}
+function updateItinItemName(dayId,itemId,name){
+  const d=itineraryDays.find(d=>d.id===dayId);if(!d)return;
+  const it=d.items.find(i=>i.id===itemId);if(it){it.customName=name.trim();save();}
 }
 function addPlaceToItinerary(placeId){
   const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
