@@ -10,7 +10,7 @@
     --bg:#f5f3ef;--surface:#fff;--border:#e0dbd2;
     --accent:#8b5e3c;--accent2:#c4956a;--text:#2a2218;
     --text-muted:#999;--visited:#eeebe6;--visited-text:#ccc;
-    --header-h:68px;--tab-h:44px;
+    --header-h:68px;--tab-h:44px;--nav-h:56px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;}
@@ -26,10 +26,10 @@
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex-shrink:0;font-family:'Zen Kaku Gothic New',sans-serif;font-size:12px;font-weight:700;padding:0 14px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;height:100%;transition:color .15s,border-color .15s;}
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  #panel-map{display:none;position:fixed;top:calc(var(--header-h) + var(--tab-h));left:0;right:0;bottom:0;}
+  #panel-map{display:none;position:fixed;top:calc(var(--header-h) + var(--tab-h));left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));}
   #panel-map.active{display:block;}
   #map{width:100%;height:100%;}
-  .content{display:none;margin-top:calc(var(--header-h) + var(--tab-h));padding:14px 16px 90px;}
+  .content{display:none;margin-top:calc(var(--header-h) + var(--tab-h));padding:14px 16px calc(var(--nav-h) + 32px + env(safe-area-inset-bottom,0px));}
   .content.active{display:block;}
   .panel{display:none;}
   .panel.active{display:block;}
@@ -88,7 +88,7 @@
   .gm-style .gm-style-iw-c{padding:0!important;border-radius:10px!important;box-shadow:0 4px 20px rgba(0,0,0,.15)!important;}
   .gm-style .gm-style-iw-d{overflow:hidden!important;}
   .gm-ui-hover-effect{top:4px!important;right:4px!important;}
-  .fab{position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.22);z-index:250;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1;}
+  .fab{position:fixed;bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-bottom,0px));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.22);z-index:250;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1;}
   .fab:hover{background:#7a5030;}
   .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:400;align-items:flex-end;}
   .modal-overlay.active{display:flex;}
@@ -106,9 +106,15 @@
   .emoji-opt.selected{border-color:var(--accent);background:#f5ede6;}
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .pac-container{z-index:500!important;font-family:'Zen Kaku Gothic New',sans-serif!important;border-radius:8px!important;}
+  /* ── Bottom Nav ── */
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1.5px solid var(--border);z-index:299;display:flex;box-shadow:0 -2px 12px rgba(0,0,0,.06);}
+  .bn-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-family:'Zen Kaku Gothic New',sans-serif;transition:color .15s;}
+  .bn-btn.active{color:var(--accent);}
+  .bn-icon{font-size:22px;line-height:1;}
+  .bn-label{font-size:10px;font-weight:700;letter-spacing:.04em;}
+  #itin-section{display:none;position:fixed;top:var(--header-h);left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 24px;background:var(--bg);z-index:200;}
+  #itin-section.active{display:block;}
   /* ── Itinerary ── */
-  .tab-plan{background:#f0e8e0;border-radius:6px;margin:6px 6px 6px 4px;border-bottom:none!important;height:auto!important;padding:0 14px!important;color:var(--accent)!important;}
-  .tab-plan.active{background:var(--accent)!important;color:white!important;}
   .day-tab-strip{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;}
   .day-tab-strip::-webkit-scrollbar{display:none;}
   .day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
@@ -199,11 +205,22 @@
       </div>
     </div>
   </div>
-  <div id="panel-itinerary" class="panel">
-    <div class="day-tab-strip" id="itin-day-strip"></div>
-    <div id="itin-day-content"></div>
   </div>
 </div>
+
+<div id="itin-section">
+  <div class="day-tab-strip" id="itin-day-strip"></div>
+  <div id="itin-day-content"></div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="bn-btn active" data-section="places" onclick="switchMainSection('places')">
+    <span class="bn-icon">🗺</span><span class="bn-label">景點</span>
+  </button>
+  <button class="bn-btn" data-section="itinerary" onclick="switchMainSection('itinerary')">
+    <span class="bn-icon">📅</span><span class="bn-label">行程</span>
+  </button>
+</nav>
 
 <button class="fab" onclick="openAddModal()">＋</button>
 
@@ -344,7 +361,7 @@ const DEFAULT_PACKING = ['護照','Suica 卡（或備好錢買）','轉接頭（
 const DEFAULT_PREP = ['確認護照有效期限','購買來回機票','預訂住宿','iff coffee 確認當週營業（週二－週五）','台場創作者市集確認是否需要提前抽號','下載 Google Maps 東京離線地圖','確認 6/6–8 台場市集天氣（雨天可能取消）','通知信用卡公司出國','準備日文常用語備查'];
 
 let visitedPlaces=[], packingItems=[], prepItems=[], customPlaces=[], customCategories=[], itineraryDays=[];
-let currentTab='map', currentItineraryDayIdx=0, itinTargetDayId=null, itinInsertAfterItemId=null;
+let currentTab='map', mainSection='places', currentItineraryDayIdx=0, itinTargetDayId=null, itinInsertAfterItemId=null;
 let selectedTransportIcon='🚇', selectedTransportMode='地鐵';
 try {
   visitedPlaces    = JSON.parse(localStorage.getItem('visited')          || '[]');
@@ -389,12 +406,11 @@ function buildTabDefs() {
     ...BASE_CATS.map(c=>({id:c.id, label:c.label})),
     ...customCategories.map(c=>({id:c.id, label:`${c.emoji} ${c.name}`})),
     {id:'checklist', label:'✅ 清單'},
-    {id:'itinerary', label:'📅 行程', special:true},
   ];
 }
 function renderTabs() {
   document.getElementById('tabs-bar').innerHTML = buildTabDefs().map(t=>
-    `<button class="tab ${t.special?'tab-plan':''} ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`
+    `<button class="tab ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
 
@@ -421,7 +437,18 @@ function switchTab(tab) {
     const el = document.getElementById(`panel-${t.id}`);
     if (el) el.classList.toggle('active', t.id===tab);
   });
-  if (tab==='itinerary') renderItinerary();
+}
+
+function switchMainSection(section){
+  mainSection=section;
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
+  const isPlaces=section==='places';
+  document.getElementById('tabs-bar').style.display=isPlaces?'':'none';
+  document.getElementById('panel-map').classList.toggle('active',isPlaces&&currentTab==='map');
+  document.getElementById('list-content').classList.toggle('active',isPlaces&&currentTab!=='map');
+  document.getElementById('itin-section').classList.toggle('active',!isPlaces);
+  document.querySelector('.fab').style.display=isPlaces?'':'none';
+  if(!isPlaces)renderItinerary();
 }
 
 // ── Cards & categories ──
