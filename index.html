@@ -187,6 +187,19 @@
   .fp-iata{font-size:12px;color:#4a7aaa;font-family:'DM Mono',monospace;font-weight:700;}
   .fp-city{font-size:10px;color:var(--text-muted);}
   .fp-sep{flex:1;text-align:center;color:#b0ccee;}
+  .sync-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:3px 6px;border-radius:6px;color:var(--text-muted);transition:all .15s;line-height:1;display:flex;align-items:center;gap:4px;margin-left:auto;}
+  .sync-btn:hover{color:var(--accent);background:#f0ebe3;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:#ddd;flex-shrink:0;transition:background .3s;}
+  .sync-dot.ok{background:#52c47a;}
+  .sync-dot.err{background:#e05050;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .sync-dot.syncing{background:#f0a030;animation:pulse .7s infinite;}
+  .sync-modal-box{background:var(--surface);border-radius:16px;padding:20px;width:calc(100% - 48px);max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+  .sync-section{margin-bottom:14px;}
+  .sync-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .sync-token-display{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--text);line-height:1.6;}
+  .sync-row{display:flex;gap:8px;align-items:stretch;}
+  .sync-row .modal-input{flex:1;margin:0;}
 </style>
 </head>
 <body>
@@ -194,6 +207,7 @@
   <div class="header-row">
     <h1 id="trip-title" contenteditable="true" spellcheck="false">東京 2026</h1>
     <span class="date-badge" id="trip-date" contenteditable="true" spellcheck="false">6/3 — 6/7</span>
+    <button class="sync-btn" onclick="openSyncModal()" title="跨裝置同步">☁ <span class="sync-dot" id="sync-dot"></span></button>
   </div>
   <div class="stats">候選 <b id="total-count">0</b> 個 · 已去 <b id="visited-count">0</b> 個</div>
 </header>
@@ -393,6 +407,16 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="sync-modal" style="align-items:center;justify-content:center;">
+  <div class="sync-modal-box">
+    <div class="modal-title" style="margin-bottom:14px">☁ 跨裝置同步</div>
+    <div id="sync-modal-body"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn" onclick="closeSyncModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const PLACES = [
   {id:'ambre',name:"Café de l'Ambre",category:'cafe',area:'銀座',hours:'週二–日 11:00–20:00',closedDays:[1],note:'東京最老牌純咖啡店，必點 Queen Amber（蛋奶酒咖啡）。',tags:[{text:'週一休',type:'warning'}],lat:35.6679217,lng:139.7622983,emoji:'☕',color:'#d4956a'},
@@ -456,6 +480,126 @@ function save() {
     localStorage.setItem('customCategories', JSON.stringify(customCategories));
     localStorage.setItem('itineraryDays',    JSON.stringify(itineraryDays));
   } catch(e){}
+  syncPush();
+}
+
+// ── Cloud sync ──
+let syncToken = localStorage.getItem('syncToken') || '';
+let syncPushTimer = null;
+
+function setSyncDot(state){ // 'ok' | 'err' | 'syncing' | ''
+  const d = document.getElementById('sync-dot');
+  if(d){ d.className = 'sync-dot' + (state ? ' '+state : ''); }
+}
+
+function getAllSyncData(){
+  return { visited:visitedPlaces, packing:packingItems, prep:prepItems,
+           customPlaces, customCategories, itineraryDays };
+}
+
+function applyCloudData(data){
+  if(!data) return;
+  if(data.visited        != null){ visitedPlaces=data.visited;        localStorage.setItem('visited',JSON.stringify(visitedPlaces)); }
+  if(data.packing        != null){ packingItems=data.packing;         localStorage.setItem('packingItems',JSON.stringify(packingItems)); }
+  if(data.prep           != null){ prepItems=data.prep;               localStorage.setItem('prepItems',JSON.stringify(prepItems)); }
+  if(data.customPlaces   != null){ customPlaces=data.customPlaces;    localStorage.setItem('customPlaces',JSON.stringify(customPlaces)); }
+  if(data.customCategories!=null){ customCategories=data.customCategories; localStorage.setItem('customCategories',JSON.stringify(customCategories)); }
+  if(data.itineraryDays  != null){ itineraryDays=data.itineraryDays;  localStorage.setItem('itineraryDays',JSON.stringify(itineraryDays)); }
+  renderAll(); renderItinerary();
+}
+
+async function syncPull(){
+  if(!syncToken) return;
+  setSyncDot('syncing');
+  try{
+    const r = await fetch('/api/sync', { headers:{'x-sync-token':syncToken} });
+    if(!r.ok) throw new Error(r.status);
+    const {data} = await r.json();
+    applyCloudData(data);
+    setSyncDot('ok');
+  } catch(e){ setSyncDot('err'); }
+}
+
+function syncPush(){
+  if(!syncToken) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(async ()=>{
+    setSyncDot('syncing');
+    try{
+      const r = await fetch('/api/sync', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-sync-token':syncToken},
+        body: JSON.stringify(getAllSyncData())
+      });
+      if(!r.ok) throw new Error(r.status);
+      setSyncDot('ok');
+    } catch(e){ setSyncDot('err'); }
+  }, 800);
+}
+
+function openSyncModal(){
+  renderSyncModalBody();
+  document.getElementById('sync-modal').classList.add('active');
+}
+function closeSyncModal(){ document.getElementById('sync-modal').classList.remove('active'); }
+
+function renderSyncModalBody(){
+  const body = document.getElementById('sync-modal-body');
+  if(syncToken){
+    body.innerHTML = `
+      <div class="sync-section">
+        <div class="sync-label">你的同步碼（在其他裝置輸入此碼）</div>
+        <div class="sync-token-display" id="sync-token-text">${syncToken}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1" onclick="copySyncToken()">複製同步碼</button>
+          <button class="btn" style="flex:1" onclick="manualPull()">拉取最新資料</button>
+        </div>
+      </div>
+      <div class="sync-section" style="border-top:1px solid var(--border);padding-top:14px">
+        <div class="sync-label">換用其他同步碼</div>
+        <div class="sync-row">
+          <input class="modal-input" id="sync-token-input" placeholder="貼上其他裝置的同步碼">
+          <button class="btn btn-primary" onclick="applySyncToken()">套用</button>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--text-muted)">套用後會以雲端資料覆蓋本機，請確認</div>`;
+  } else {
+    body.innerHTML = `
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+        生成同步碼後，在任何裝置輸入同一組碼即可共用資料。
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="generateSyncToken()">生成同步碼</button>
+      <div class="sync-label">已有同步碼？</div>
+      <div class="sync-row">
+        <input class="modal-input" id="sync-token-input" placeholder="貼上同步碼">
+        <button class="btn btn-primary" onclick="applySyncToken()">套用</button>
+      </div>`;
+  }
+}
+
+function generateSyncToken(){
+  syncToken = crypto.randomUUID().replace(/-/g,'').slice(0,20);
+  localStorage.setItem('syncToken', syncToken);
+  syncPush();
+  renderSyncModalBody();
+}
+
+async function applySyncToken(){
+  const v = (document.getElementById('sync-token-input')?.value || '').trim().replace(/[^a-zA-Z0-9_-]/g,'');
+  if(v.length < 6){ alert('同步碼太短'); return; }
+  syncToken = v;
+  localStorage.setItem('syncToken', syncToken);
+  renderSyncModalBody();
+  await syncPull();
+}
+
+function copySyncToken(){
+  navigator.clipboard.writeText(syncToken).then(()=>alert('已複製同步碼'));
+}
+
+async function manualPull(){
+  await syncPull();
+  alert(document.getElementById('sync-dot')?.classList.contains('ok') ? '同步成功' : '同步失敗，請確認網路');
 }
 
 function getAllPlaces() { return [...PLACES, ...customPlaces]; }
@@ -626,6 +770,7 @@ function initMap(){
       openAddModal({lat:e.latLng.lat(),lng:e.latLng.lng()});
     }
   });
+  syncPull();
 }
 
 // ── Add Place Modal ──
