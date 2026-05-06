@@ -486,6 +486,7 @@ function save() {
 // ── Cloud sync ──
 let syncToken = localStorage.getItem('syncToken') || '';
 let syncPushTimer = null;
+let lastCloudSnapshot = '';
 
 function setSyncDot(state){ // 'ok' | 'err' | 'syncing' | ''
   const d = document.getElementById('sync-dot');
@@ -515,10 +516,20 @@ async function syncPull(){
     const r = await fetch('/api/sync', { headers:{'x-sync-token':syncToken} });
     if(!r.ok) throw new Error(r.status);
     const {data} = await r.json();
-    applyCloudData(data);
+    if(data){
+      const snapshot = JSON.stringify(data);
+      if(snapshot !== lastCloudSnapshot){
+        lastCloudSnapshot = snapshot;
+        applyCloudData(data);
+      }
+    }
     setSyncDot('ok');
   } catch(e){ setSyncDot('err'); }
 }
+
+setInterval(()=>{
+  if(syncToken && document.visibilityState !== 'hidden') syncPull();
+}, 30000);
 
 function syncPush(){
   if(!syncToken) return;
