@@ -340,6 +340,7 @@
         <div class="tm-opt" data-icon="🚶" data-mode="步行" onclick="selectTransportMode(this)">🚶 步行</div>
         <div class="tm-opt" data-icon="🚕" data-mode="計程車" onclick="selectTransportMode(this)">🚕 計程車</div>
       </div>
+      <input class="modal-input" id="transport-custom-mode" placeholder="或自訂（例：🚢 渡輪、🚲 腳踏車、✈ 機場巴士）" style="margin-top:8px" oninput="onCustomTransportInput(this)">
     </div>
     <div class="modal-field">
       <div class="modal-label">所需時間（選填）</div>
@@ -876,6 +877,7 @@ function openItinTransportModal(dayId,afterItemId){
   itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;
   document.getElementById('transport-duration').value='';
   document.getElementById('transport-note').value='';
+  document.getElementById('transport-custom-mode').value='';
   document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
   const first=document.querySelector('.tm-opt');first.classList.add('selected');
   selectedTransportIcon=first.dataset.icon;selectedTransportMode=first.dataset.mode;
@@ -885,10 +887,25 @@ function closeItinTransportModal(){document.getElementById('itin-transport-modal
 function selectTransportMode(el){
   document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected');selectedTransportIcon=el.dataset.icon;selectedTransportMode=el.dataset.mode;
+  document.getElementById('transport-custom-mode').value='';
+}
+function onCustomTransportInput(el){
+  if(el.value.trim()){
+    document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
+  } else {
+    const first=document.querySelector('.tm-opt');first.classList.add('selected');
+    selectedTransportIcon=first.dataset.icon;selectedTransportMode=first.dataset.mode;
+  }
 }
 function saveTransportItem(){
   const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
-  const newItem={id:'it'+Date.now(),type:'transport',icon:selectedTransportIcon,mode:selectedTransportMode,
+  let icon=selectedTransportIcon,mode=selectedTransportMode;
+  const custom=document.getElementById('transport-custom-mode').value.trim();
+  if(custom){
+    const m=custom.match(/^(\p{Emoji_Presentation}|\p{Emoji}️|\p{Emoji})/u);
+    icon=m?m[0]:'🚌';mode=m?custom.slice(m[0].length).trim()||custom:custom;
+  }
+  const newItem={id:'it'+Date.now(),type:'transport',icon,mode,
     duration:document.getElementById('transport-duration').value.trim(),
     note:document.getElementById('transport-note').value.trim()};
   if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
