@@ -185,6 +185,12 @@
   .tl-esim-field{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
   .tl-esim-label{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;}
   .tl-esim-value{font-size:12px;font-weight:600;font-family:'DM Mono',monospace;word-break:break-all;}
+  .tl-esim-qr{background:#fff;border-radius:8px;padding:8px;display:inline-block;margin:8px 0 4px;cursor:pointer;}
+  .tl-esim-qr canvas,.tl-esim-qr img{display:block;}
+  .qr-fullscreen-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+  .qr-fullscreen-overlay.active{display:flex;}
+  .qr-fullscreen-box{background:#fff;border-radius:16px;padding:20px;}
+  .qr-fullscreen-hint{color:#fff;font-size:13px;opacity:.7;}
   .tl-flight-card{background:var(--surface);border:1px solid #c8ddf0;border-radius:10px;padding:10px 12px;background:linear-gradient(135deg,#f8fbff 0%,#fff 100%);}
   .tl-flight-no{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#4a7aaa;margin-bottom:8px;}
   .tl-flight-route{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
@@ -447,9 +453,20 @@
         <input class="modal-input" id="esim-valid" placeholder="例：10天、6/12到期">
       </div>
     </div>
-    <div class="modal-field">
-      <div class="modal-label">啟用碼 / QR Code 連結（選填）</div>
-      <input class="modal-input" id="esim-code" placeholder="貼上啟用碼或連結">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px">🔐 eSIM 啟用資訊（填入後自動產生 QR Code）</div>
+      <div class="modal-field" style="margin-bottom:8px">
+        <div class="modal-label">SM-DP+ Address</div>
+        <input class="modal-input" id="esim-smdp" placeholder="例：rsp-eu.simlessly.com">
+      </div>
+      <div class="modal-field" style="margin-bottom:8px">
+        <div class="modal-label">Activation Code</div>
+        <input class="modal-input" id="esim-activation" placeholder="例：1CB1814060F8DECA5CAB616BCEE1BF14">
+      </div>
+      <div class="modal-field" style="margin-bottom:0">
+        <div class="modal-label">ICCID（選填）</div>
+        <input class="modal-input" id="esim-iccid" placeholder="例：89985201872405007634">
+      </div>
     </div>
     <div class="modal-field">
       <div class="modal-label">備註（選填）</div>
@@ -460,6 +477,11 @@
       <button class="btn btn-primary" onclick="saveEsimItem()">加入行程</button>
     </div>
   </div>
+</div>
+
+<div class="qr-fullscreen-overlay" id="qr-fullscreen-overlay" onclick="closeQRFullscreen()">
+  <div class="qr-fullscreen-box" id="qr-fullscreen-container" onclick="event.stopPropagation()"></div>
+  <div class="qr-fullscreen-hint">點任意處關閉</div>
 </div>
 
 <div class="modal-overlay" id="sync-modal" style="align-items:center;justify-content:center;">
@@ -956,6 +978,7 @@ function renderItinerary(){
   ).join('')+`<button class="day-add-btn" onclick="addItineraryDay()">＋ 新增天數</button>`;
   const day=itineraryDays[currentItineraryDayIdx];
   content.innerHTML=day?renderOneDayView(day):'';
+  renderAllQRCodes();
 }
 function switchItinDay(idx){currentItineraryDayIdx=idx;renderItinerary();}
 function renderOneDayView(day){
@@ -1347,6 +1370,8 @@ function renderTlFlightItem(item,dayId){
 
 function renderTlEsimItem(item,dayId){
   const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const hasQR=!!(item.smdpAddress&&item.activationCode);
+  const lpa=hasQR?`LPA:1$${item.smdpAddress}$${item.activationCode}`:'';
   return `<div class="tl-place-item" data-item-id="${item.id}">
     <div class="tl-dot" style="background:#2d6a9f;box-shadow:0 0 0 2px #2d6a9f"></div>
     <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${item.time||'──'}</span>
@@ -1356,7 +1381,8 @@ function renderTlEsimItem(item,dayId){
         ${item.data?`<div class="tl-esim-field"><div class="tl-esim-label">流量</div><div class="tl-esim-value">${item.data}</div></div>`:''}
         ${item.validDays?`<div class="tl-esim-field"><div class="tl-esim-label">有效期</div><div class="tl-esim-value">${item.validDays}</div></div>`:''}
       </div>
-      ${item.activationCode?`<div class="tl-esim-field"><div class="tl-esim-label" style="color:rgba(255,255,255,.6)">啟用碼</div><div class="tl-esim-value" style="font-size:11px">${item.activationCode.replace(/</g,'&lt;')}</div></div>`:''}
+      ${hasQR?`<div id="qr-${item.id}" class="tl-esim-qr" onclick="showQRFullscreen('${lpa.replace(/'/g,"\\'")}')"></div><div style="font-size:9px;opacity:.55;margin-bottom:6px">點擊放大掃描</div>`:''}
+      ${item.iccid?`<div class="tl-esim-field" style="margin-bottom:4px"><div class="tl-esim-label" style="color:rgba(255,255,255,.55)">ICCID</div><div class="tl-esim-value" style="font-size:10px">${item.iccid}</div></div>`:''}
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)">${note}</textarea>
       <div class="tl-card-footer">
         <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序" style="color:rgba(255,255,255,.5)">☰</span>
@@ -1380,11 +1406,13 @@ function openEsimModal(dayId,afterItemId,editItemId=null){
       document.getElementById('esim-plan').value=item.plan||'';
       document.getElementById('esim-data').value=item.data||'';
       document.getElementById('esim-valid').value=item.validDays||'';
-      document.getElementById('esim-code').value=item.activationCode||'';
+      document.getElementById('esim-smdp').value=item.smdpAddress||'';
+      document.getElementById('esim-activation').value=item.activationCode||'';
+      document.getElementById('esim-iccid').value=item.iccid||'';
       document.getElementById('esim-note').value=item.note||'';
     }
   } else {
-    ['esim-provider','esim-plan','esim-data','esim-valid','esim-code','esim-note'].forEach(id=>document.getElementById(id).value='');
+    ['esim-provider','esim-plan','esim-data','esim-valid','esim-smdp','esim-activation','esim-iccid','esim-note'].forEach(id=>document.getElementById(id).value='');
   }
   document.getElementById('itin-esim-modal').classList.add('active');
 }
@@ -1395,7 +1423,9 @@ function saveEsimItem(){
     plan:document.getElementById('esim-plan').value.trim(),
     data:document.getElementById('esim-data').value.trim(),
     validDays:document.getElementById('esim-valid').value.trim(),
-    activationCode:document.getElementById('esim-code').value.trim(),
+    smdpAddress:document.getElementById('esim-smdp').value.trim(),
+    activationCode:document.getElementById('esim-activation').value.trim(),
+    iccid:document.getElementById('esim-iccid').value.trim(),
     note:document.getElementById('esim-note').value.trim()};
   if(_editingEsimItemId){
     const it=day.items.find(i=>i.id===_editingEsimItemId);
@@ -1408,6 +1438,22 @@ function saveEsimItem(){
   }
   save();closeEsimModal();renderItinerary();
 }
+function renderAllQRCodes(){
+  const day=itineraryDays[currentItineraryDayIdx];if(!day||!window.QRCode)return;
+  day.items.filter(i=>i.type==='esim'&&i.smdpAddress&&i.activationCode).forEach(item=>{
+    const el=document.getElementById('qr-'+item.id);
+    if(el&&!el.querySelector('canvas')&&!el.querySelector('img')){
+      new QRCode(el,{text:`LPA:1$${item.smdpAddress}$${item.activationCode}`,width:160,height:160,colorDark:'#000000',colorLight:'#ffffff'});
+    }
+  });
+}
+function showQRFullscreen(lpa){
+  const container=document.getElementById('qr-fullscreen-container');
+  container.innerHTML='';
+  if(window.QRCode) new QRCode(container,{text:lpa,width:280,height:280,colorDark:'#000000',colorLight:'#ffffff'});
+  document.getElementById('qr-fullscreen-overlay').classList.add('active');
+}
+function closeQRFullscreen(){document.getElementById('qr-fullscreen-overlay').classList.remove('active');}
 
 // ── Flight lookup ──
 let pendingFlightData=null,flightTargetDayId=null,flightInsertAfterItemId=null;
@@ -1542,6 +1588,7 @@ function confirmAddFlight(){
 
 renderAll();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpZvQ-8RwCNSeRlWy5eoiJJMISwPkbG9M&libraries=marker,places&callback=initMap" async defer></script>
 </body>
 </html>
