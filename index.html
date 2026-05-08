@@ -117,7 +117,7 @@
   /* ── Itinerary ── */
   .day-tab-strip{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;}
   .day-tab-strip::-webkit-scrollbar{display:none;}
-  .day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .15s;touch-action:pan-y;user-select:none;-webkit-user-select:none;}
+  .day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .15s;user-select:none;-webkit-user-select:none;}
   .day-tab.active{border-color:var(--accent);color:var(--accent);background:#fdf9f5;}
   .day-tab-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.88;box-shadow:0 4px 20px rgba(0,0,0,.22);transition:none;}
   .day-tab-drag-over{border-color:var(--accent2)!important;background:#fdf5ee!important;}
