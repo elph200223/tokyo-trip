@@ -177,6 +177,14 @@
   .tm-opt.selected{border-color:var(--accent);background:#f5ede6;}
   .itin-add-flight-btn{width:100%;padding:10px;border:1.5px dashed #b0ccee;border-radius:10px;background:transparent;color:#4a7aaa;font-size:13px;font-weight:700;font-family:'Zen Kaku Gothic New',sans-serif;cursor:pointer;margin-top:8px;transition:all .15s;}
   .itin-add-flight-btn:hover{border-color:#4a7aaa;background:#f0f5fc;}
+  .itin-add-esim-btn{width:100%;padding:10px;border:1.5px dashed #7ab3d4;border-radius:10px;background:transparent;color:#2d6a9f;font-size:13px;font-weight:700;font-family:'Zen Kaku Gothic New',sans-serif;cursor:pointer;margin-top:8px;transition:all .15s;}
+  .itin-add-esim-btn:hover{border-color:#2d6a9f;background:#f0f5fc;}
+  .tl-esim-card{background:linear-gradient(135deg,#1a3a5c,#2d6a9f);color:#fff;border-radius:10px;padding:12px 14px;margin-bottom:2px;}
+  .tl-esim-header{font-size:12px;font-weight:700;letter-spacing:.5px;margin-bottom:8px;}
+  .tl-esim-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+  .tl-esim-field{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+  .tl-esim-label{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;}
+  .tl-esim-value{font-size:12px;font-weight:600;font-family:'DM Mono',monospace;word-break:break-all;}
   .tl-flight-card{background:var(--surface);border:1px solid #c8ddf0;border-radius:10px;padding:10px 12px;background:linear-gradient(135deg,#f8fbff 0%,#fff 100%);}
   .tl-flight-no{font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#4a7aaa;margin-bottom:8px;}
   .tl-flight-route{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
@@ -414,6 +422,42 @@
     </div>
     <div style="text-align:right;margin-top:8px;display:none" id="flight-key-reset-wrap">
       <button onclick="resetFlightApiKey()" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:underline">更換 API Key</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="itin-esim-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">📶 eSIM / 網路卡資訊</div>
+    <div class="modal-field">
+      <div class="modal-label">電信商</div>
+      <input class="modal-input" id="esim-provider" placeholder="例：DJB、IIJ、楽天">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">方案名稱</div>
+      <input class="modal-input" id="esim-plan" placeholder="例：日本 10天 每日1GB">
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:1">
+        <div class="modal-label">流量</div>
+        <input class="modal-input" id="esim-data" placeholder="例：每日1GB、5GB總量">
+      </div>
+      <div class="modal-field" style="flex:1">
+        <div class="modal-label">有效天數/到期日</div>
+        <input class="modal-input" id="esim-valid" placeholder="例：10天、6/12到期">
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">啟用碼 / QR Code 連結（選填）</div>
+      <input class="modal-input" id="esim-code" placeholder="貼上啟用碼或連結">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">備註（選填）</div>
+      <input class="modal-input" id="esim-note" placeholder="例：到達後開啟飛航再掃描">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEsimModal()" style="flex:0.6">取消</button>
+      <button class="btn btn-primary" onclick="saveEsimItem()">加入行程</button>
     </div>
   </div>
 </div>
@@ -932,6 +976,8 @@ function renderOneDayView(day){
         h+=renderTlPlaceItem(item,place,day.id);
       } else if(item.type==='flight'){
         h+=renderTlFlightItem(item,day.id);
+      } else if(item.type==='esim'){
+        h+=renderTlEsimItem(item,day.id);
       } else {
         h+=renderTlTransportItem(item,day.id);
       }
@@ -944,6 +990,7 @@ function renderOneDayView(day){
   }
   h+=`<button class="itin-add-place-btn" onclick="openItinPlaceModal('${day.id}',null)">＋ 新增地點到今天</button>`;
   h+=`<button class="itin-add-flight-btn" onclick="openFlightModal('${day.id}',null)">✈ 新增航班</button>`;
+  h+=`<button class="itin-add-esim-btn" onclick="openEsimModal('${day.id}',null)">📶 新增 eSIM / 網路卡</button>`;
   return h;
 }
 function renderTlPlaceItem(item,place,dayId){
@@ -963,7 +1010,10 @@ function renderTlPlaceItem(item,place,dayId){
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       <div class="tl-card-footer">
         <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序">☰</span>
-        <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+        <div style="display:flex;gap:6px">
+          <button class="tl-btn-sm tl-btn-edit" onclick="openEditPlaceModal('${dayId}','${item.id}')">✏ 編輯</button>
+          <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1142,12 +1192,26 @@ function openItinPlaceModal(dayId,afterItemId){
 }
 function _addItinItemByName(name){
   const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
-  const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
-  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
-  else day.items.push(newItem);
+  if(_editingPlaceItemId){
+    const it=day.items.find(i=>i.id===_editingPlaceItemId);
+    if(it){it.placeId=null;it.customName=name;}
+    _editingPlaceItemId=null;
+  } else {
+    const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
+    if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+    else day.items.push(newItem);
+  }
   save();closeItinPlaceModal();renderItinerary();
 }
-function closeItinPlaceModal(){document.getElementById('itin-place-modal').classList.remove('active');}
+function closeItinPlaceModal(){document.getElementById('itin-place-modal').classList.remove('active');_editingPlaceItemId=null;}
+function openEditPlaceModal(dayId,itemId){
+  itinTargetDayId=dayId;itinInsertAfterItemId=null;_editingPlaceItemId=itemId;
+  document.getElementById('itin-custom-input').value='';
+  document.getElementById('itin-place-filter').value='';
+  document.getElementById('itin-place-search').value='';
+  filterItinPlaces('');
+  document.getElementById('itin-place-modal').classList.add('active');
+}
 function filterItinPlaces(q){
   const all=getAllPlaces().filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())||p.area.includes(q));
   document.getElementById('itin-place-list').innerHTML=getAllCatDefs().map(cat=>{
@@ -1160,12 +1224,17 @@ function filterItinPlaces(q){
   }).join('');
 }
 function addCustomItinItem(){
-  const name=document.getElementById('itin-custom-input').value.trim();
-  if(!name)return;
+  const name=document.getElementById('itin-custom-input').value.trim();if(!name)return;
   const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
-  const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
-  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
-  else day.items.push(newItem);
+  if(_editingPlaceItemId){
+    const it=day.items.find(i=>i.id===_editingPlaceItemId);
+    if(it){it.placeId=null;it.customName=name;}
+    _editingPlaceItemId=null;
+  } else {
+    const newItem={id:'it'+Date.now(),type:'place',placeId:null,customName:name,time:'',note:''};
+    if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+    else day.items.push(newItem);
+  }
   save();closeItinPlaceModal();renderItinerary();
 }
 function updateItinItemName(dayId,itemId,name){
@@ -1174,9 +1243,15 @@ function updateItinItemName(dayId,itemId,name){
 }
 function addPlaceToItinerary(placeId){
   const day=itineraryDays.find(d=>d.id===itinTargetDayId);if(!day)return;
-  const newItem={id:'it'+Date.now(),type:'place',placeId,time:'',note:''};
-  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
-  else day.items.push(newItem);
+  if(_editingPlaceItemId){
+    const it=day.items.find(i=>i.id===_editingPlaceItemId);
+    if(it){it.placeId=placeId;delete it.customName;}
+    _editingPlaceItemId=null;
+  } else {
+    const newItem={id:'it'+Date.now(),type:'place',placeId,time:'',note:''};
+    if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+    else day.items.push(newItem);
+  }
   save();closeItinPlaceModal();renderItinerary();
 }
 function openItinTransportModal(dayId,afterItemId,editItemId=null){
@@ -1270,9 +1345,73 @@ function renderTlFlightItem(item,dayId){
   </div>`;
 }
 
+function renderTlEsimItem(item,dayId){
+  const note=(item.note||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  return `<div class="tl-place-item" data-item-id="${item.id}">
+    <div class="tl-dot" style="background:#2d6a9f;box-shadow:0 0 0 2px #2d6a9f"></div>
+    <span class="tl-time-label" onclick="editItinTime('${dayId}','${item.id}',this)" title="點擊設定時間">${item.time||'──'}</span>
+    <div class="tl-esim-card">
+      <div class="tl-esim-header">📶 ${(item.provider||'eSIM').replace(/</g,'&lt;')}${item.plan?' · '+(item.plan||'').replace(/</g,'&lt;'):''}</div>
+      <div class="tl-esim-row">
+        ${item.data?`<div class="tl-esim-field"><div class="tl-esim-label">流量</div><div class="tl-esim-value">${item.data}</div></div>`:''}
+        ${item.validDays?`<div class="tl-esim-field"><div class="tl-esim-label">有效期</div><div class="tl-esim-value">${item.validDays}</div></div>`:''}
+      </div>
+      ${item.activationCode?`<div class="tl-esim-field"><div class="tl-esim-label" style="color:rgba(255,255,255,.6)">啟用碼</div><div class="tl-esim-value" style="font-size:11px">${item.activationCode.replace(/</g,'&lt;')}</div></div>`:''}
+      <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)">${note}</textarea>
+      <div class="tl-card-footer">
+        <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序" style="color:rgba(255,255,255,.5)">☰</span>
+        <div style="display:flex;gap:6px">
+          <button class="tl-btn-sm" onclick="openEsimModal('${dayId}',null,'${item.id}')" style="color:rgba(255,255,255,.8)">✏ 編輯</button>
+          <button class="tl-btn-sm" onclick="removeItinItem('${dayId}','${item.id}')" style="color:rgba(255,255,255,.6)">✕ 移除</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── eSIM modal ──
+let esimTargetDayId=null,esimInsertAfterItemId=null,_editingEsimItemId=null;
+function openEsimModal(dayId,afterItemId,editItemId=null){
+  esimTargetDayId=dayId;esimInsertAfterItemId=afterItemId;_editingEsimItemId=editItemId;
+  if(editItemId){
+    const item=itineraryDays.find(d=>d.id===dayId)?.items.find(i=>i.id===editItemId);
+    if(item){
+      document.getElementById('esim-provider').value=item.provider||'';
+      document.getElementById('esim-plan').value=item.plan||'';
+      document.getElementById('esim-data').value=item.data||'';
+      document.getElementById('esim-valid').value=item.validDays||'';
+      document.getElementById('esim-code').value=item.activationCode||'';
+      document.getElementById('esim-note').value=item.note||'';
+    }
+  } else {
+    ['esim-provider','esim-plan','esim-data','esim-valid','esim-code','esim-note'].forEach(id=>document.getElementById(id).value='');
+  }
+  document.getElementById('itin-esim-modal').classList.add('active');
+}
+function closeEsimModal(){document.getElementById('itin-esim-modal').classList.remove('active');_editingEsimItemId=null;}
+function saveEsimItem(){
+  const day=itineraryDays.find(d=>d.id===esimTargetDayId);if(!day)return;
+  const fields={provider:document.getElementById('esim-provider').value.trim(),
+    plan:document.getElementById('esim-plan').value.trim(),
+    data:document.getElementById('esim-data').value.trim(),
+    validDays:document.getElementById('esim-valid').value.trim(),
+    activationCode:document.getElementById('esim-code').value.trim(),
+    note:document.getElementById('esim-note').value.trim()};
+  if(_editingEsimItemId){
+    const it=day.items.find(i=>i.id===_editingEsimItemId);
+    if(it)Object.assign(it,fields);
+    _editingEsimItemId=null;
+  } else {
+    const newItem={id:'it'+Date.now(),type:'esim',time:'',...fields};
+    if(esimInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===esimInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+    else day.items.push(newItem);
+  }
+  save();closeEsimModal();renderItinerary();
+}
+
 // ── Flight lookup ──
 let pendingFlightData=null,flightTargetDayId=null,flightInsertAfterItemId=null;
-let _editingTransportItemId=null,_editingFlightItemId=null;
+let _editingTransportItemId=null,_editingFlightItemId=null,_editingPlaceItemId=null;
 function openFlightModal(dayId,afterItemId){
   flightTargetDayId=dayId;flightInsertAfterItemId=afterItemId;
   pendingFlightData=null;
