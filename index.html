@@ -119,8 +119,10 @@
   .day-tab-strip::-webkit-scrollbar{display:none;}
   .day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .15s;user-select:none;-webkit-user-select:none;}
   .day-tab.active{border-color:var(--accent);color:var(--accent);background:#fdf9f5;}
-  .day-tab-ghost{position:fixed;z-index:999;pointer-events:none;opacity:.88;box-shadow:0 4px 20px rgba(0,0,0,.22);transition:none;}
-  .day-tab-drag-over{border-color:var(--accent2)!important;background:#fdf5ee!important;}
+  .dtab-drag{display:inline-flex;align-items:center;margin-right:5px;font-size:12px;color:#ccc;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;letter-spacing:-1px;}
+  .day-tab-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.92;box-shadow:0 6px 20px rgba(0,0,0,.28);transform:scale(1.06);transition:none;border-radius:20px;}
+  .day-tab-dragging{opacity:.15!important;}
+  .day-drop-line{width:3px;min-width:3px;height:28px;background:var(--accent);border-radius:3px;flex-shrink:0;align-self:center;box-shadow:0 0 8px rgba(139,94,60,.5);}
   .day-add-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px dashed var(--border);background:transparent;font-size:12px;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
   .day-add-btn:hover{border-color:var(--accent2);color:var(--accent);}
   .day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
@@ -905,7 +907,7 @@ function renderItinerary(){
   const content=document.getElementById('itin-day-content');
   if(!strip||!content)return;
   strip.innerHTML=itineraryDays.map((d,i)=>
-    `<button class="day-tab ${i===currentItineraryDayIdx?'active':''}" data-day-id="${d.id}" onclick="switchItinDay(${i})" onpointerdown="startDayDrag(event,'${d.id}')">${d.label}${d.date?' · '+d.date:''}</button>`
+    `<button class="day-tab ${i===currentItineraryDayIdx?'active':''}" data-day-id="${d.id}" onclick="switchItinDay(${i})">${itineraryDays.length>1?`<span class="dtab-drag" onpointerdown="startDayDrag(event,'${d.id}')">☰</span>`:''}${d.label}${d.date?' · '+d.date:''}</button>`
   ).join('')+`<button class="day-add-btn" onclick="addItineraryDay()">＋ 新增天數</button>`;
   const day=itineraryDays[currentItineraryDayIdx];
   content.innerHTML=day?renderOneDayView(day):'';
@@ -1065,67 +1067,57 @@ function removeItinDay(dayId){
 // ── Day tab drag-to-reorder ──
 let _dayDrag=null;
 function startDayDrag(e,dayId){
+  e.preventDefault();e.stopPropagation();
   if(itineraryDays.length<=1)return;
-  const tab=e.currentTarget;
-  const sx=e.clientX,sy=e.clientY;
-  let activated=false;
-  const timer=setTimeout(()=>{
-    activated=true;
-    const rect=tab.getBoundingClientRect();
-    const ghost=tab.cloneNode(true);
-    ghost.className='day-tab day-tab-ghost';
-    ghost.style.cssText=`left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;padding:${getComputedStyle(tab).padding};font-size:${getComputedStyle(tab).fontSize};font-weight:${getComputedStyle(tab).fontWeight};border-radius:${getComputedStyle(tab).borderRadius};border:${getComputedStyle(tab).border};background:${getComputedStyle(tab).background};color:${getComputedStyle(tab).color};`;
-    document.body.appendChild(ghost);
-    tab.style.opacity='0.3';
-    _dayDrag={dayId,tab,ghost,offsetX:e.clientX-rect.left};
-    document.addEventListener('pointermove',_moveDayDrag,{passive:false});
-    document.addEventListener('pointerup',_endDayDrag);
-    document.addEventListener('pointercancel',_endDayDrag);
-  },250);
-  const onMove=(ev)=>{if(Math.abs(ev.clientX-sx)>8||Math.abs(ev.clientY-sy)>8){clearTimeout(timer);cleanup();}};
-  const onUp=()=>{if(!activated)clearTimeout(timer);cleanup();};
-  function cleanup(){document.removeEventListener('pointermove',onMove);document.removeEventListener('pointerup',onUp);}
-  document.addEventListener('pointermove',onMove,{passive:true});
-  document.addEventListener('pointerup',onUp,{once:true});
+  const btn=e.currentTarget.closest('[data-day-id]');
+  const rect=btn.getBoundingClientRect();
+  const cs=getComputedStyle(btn);
+  const ghost=document.createElement('div');
+  ghost.className='day-tab day-tab-ghost';
+  ghost.textContent=btn.textContent;
+  ghost.style.cssText=`left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;line-height:${rect.height}px;padding:0 14px;font-size:${cs.fontSize};font-weight:${cs.fontWeight};border:${cs.border};background:${cs.background};color:${cs.color};`;
+  document.body.appendChild(ghost);
+  btn.classList.add('day-tab-dragging');
+  _dayDrag={dayId,btn,ghost,offsetX:e.clientX-rect.left,insertBeforeId:undefined};
+  document.addEventListener('pointermove',_moveDayDrag,{passive:false});
+  document.addEventListener('pointerup',_endDayDrag);
+  document.addEventListener('pointercancel',_endDayDrag);
 }
 function _moveDayDrag(e){
   if(!_dayDrag)return;
   e.preventDefault();
   _dayDrag.ghost.style.left=(e.clientX-_dayDrag.offsetX)+'px';
   const strip=document.getElementById('itin-day-strip');
-  [...strip.querySelectorAll('[data-day-id]')].forEach(t=>t.classList.remove('day-tab-drag-over'));
-  const n=_nearestDayTab(e.clientX);
-  if(n&&n!==_dayDrag.tab)n.classList.add('day-tab-drag-over');
-}
-function _nearestDayTab(cx){
-  const strip=document.getElementById('itin-day-strip');
-  const tabs=[...strip.querySelectorAll('[data-day-id]')];
-  let best=null,dist=Infinity;
-  for(const t of tabs){const r=t.getBoundingClientRect();const d=Math.abs(cx-(r.left+r.width/2));if(d<dist){dist=d;best=t;}}
-  return best;
+  strip.querySelector('.day-drop-line')?.remove();
+  const others=[...strip.querySelectorAll('[data-day-id]')].filter(t=>t.dataset.dayId!==_dayDrag.dayId);
+  let insertBefore=null;
+  for(const t of others){const r=t.getBoundingClientRect();if(e.clientX<r.left+r.width/2){insertBefore=t;break;}}
+  _dayDrag.insertBeforeId=insertBefore?.dataset.dayId??null;
+  const line=document.createElement('div');line.className='day-drop-line';
+  if(insertBefore)strip.insertBefore(line,insertBefore);
+  else strip.insertBefore(line,strip.querySelector('.day-add-btn'));
 }
 function _endDayDrag(e){
   if(!_dayDrag)return;
-  const{dayId,tab,ghost}=_dayDrag;
-  ghost.remove();tab.style.opacity='';
-  const strip=document.getElementById('itin-day-strip');
-  [...strip.querySelectorAll('[data-day-id]')].forEach(t=>t.classList.remove('day-tab-drag-over'));
+  const{dayId,btn,ghost,insertBeforeId}=_dayDrag;
+  ghost.remove();btn.classList.remove('day-tab-dragging');
+  document.getElementById('itin-day-strip')?.querySelector('.day-drop-line')?.remove();
   document.removeEventListener('pointermove',_moveDayDrag);
   document.removeEventListener('pointerup',_endDayDrag);
   document.removeEventListener('pointercancel',_endDayDrag);
-  const nearest=_nearestDayTab(e.clientX);
-  const toId=nearest?.dataset.dayId;
-  const fromIdx=itineraryDays.findIndex(d=>d.id===dayId);
-  const toIdx=toId?itineraryDays.findIndex(d=>d.id===toId):-1;
   _dayDrag=null;
-  if(toIdx!==-1&&toIdx!==fromIdx){
-    const[moved]=itineraryDays.splice(fromIdx,1);
+  const fromIdx=itineraryDays.findIndex(d=>d.id===dayId);
+  const[moved]=itineraryDays.splice(fromIdx,1);
+  if(insertBeforeId){
+    const toIdx=itineraryDays.findIndex(d=>d.id===insertBeforeId);
     itineraryDays.splice(toIdx,0,moved);
-    itineraryDays.forEach((d,i)=>{d.label=`Day ${i+1}`;});
     currentItineraryDayIdx=toIdx;
-    save();
+  } else {
+    itineraryDays.push(moved);
+    currentItineraryDayIdx=itineraryDays.length-1;
   }
-  renderItinerary();
+  itineraryDays.forEach((d,i)=>{d.label=`Day ${i+1}`;});
+  save();renderItinerary();
 }
 function openItinPlaceModal(dayId,afterItemId){
   itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;
