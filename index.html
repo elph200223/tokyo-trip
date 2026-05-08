@@ -90,8 +90,8 @@
   .gm-ui-hover-effect{top:4px!important;right:4px!important;}
   .fab{position:fixed;bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-bottom,0px));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.22);z-index:250;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1;}
   .fab:hover{background:#7a5030;}
-  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:400;align-items:flex-end;}
-  .modal-overlay.active{display:flex;}
+  .modal-overlay{display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:400;align-items:flex-end;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .18s,visibility .18s;}
+  .modal-overlay.active{visibility:visible;opacity:1;pointer-events:auto;}
   .modal-sheet{background:var(--surface);border-radius:18px 18px 0 0;padding:20px 16px 40px;width:100%;max-height:90vh;overflow-y:auto;}
   .modal-title{font-size:16px;font-weight:900;color:var(--accent);margin-bottom:16px;}
   .modal-field{margin-bottom:12px;}
@@ -973,11 +973,14 @@ function renderItinerary(){
   const strip=document.getElementById('itin-day-strip');
   const content=document.getElementById('itin-day-content');
   if(!strip||!content)return;
+  const section=document.getElementById('itin-section');
+  const savedScroll=section?section.scrollTop:0;
   strip.innerHTML=itineraryDays.map((d,i)=>
     `<button class="day-tab ${i===currentItineraryDayIdx?'active':''}" data-day-id="${d.id}" onclick="switchItinDay(${i})">${itineraryDays.length>1?`<span class="dtab-drag" onpointerdown="startDayDrag(event,'${d.id}')">☰</span>`:''}${d.label}${d.date?' · '+d.date:''}</button>`
   ).join('')+`<button class="day-add-btn" onclick="addItineraryDay()">＋ 新增天數</button>`;
   const day=itineraryDays[currentItineraryDayIdx];
   content.innerHTML=day?renderOneDayView(day):'';
+  if(section)section.scrollTop=savedScroll;
   renderAllQRCodes();
 }
 function switchItinDay(idx){currentItineraryDayIdx=idx;renderItinerary();}
