@@ -149,6 +149,7 @@
   .tl-btn-sm{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:2px 5px;border-radius:4px;transition:all .12s;}
   .tl-btn-sm:hover{color:var(--text);background:var(--bg);}
   .tl-btn-danger:hover{color:#d05030!important;background:#fff5f2!important;}
+  .tl-btn-edit{color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 35%,transparent);border-radius:4px;}
   .tl-transport-item{position:relative;margin:2px 0 10px;}
   .tl-transport-dot{position:absolute;left:-16px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--border);}
   .tl-tc{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg);border:1px dashed var(--border);border-radius:8px;}
@@ -978,6 +979,7 @@ function renderTlTransportItem(item,dayId){
         <div class="tl-tc-mode">${item.mode}${item.duration?' · '+item.duration:''}</div>
         <textarea class="tl-tc-note" placeholder="路線備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       </div>
+      <button class="tl-btn-sm tl-btn-edit" onclick="openItinTransportModal('${dayId}',null,'${item.id}')" style="margin-right:4px">✏</button>
       <button class="tl-tc-remove" onclick="removeItinItem('${dayId}','${item.id}')">✕</button>
     </div>
   </div>`;
@@ -1177,14 +1179,26 @@ function addPlaceToItinerary(placeId){
   else day.items.push(newItem);
   save();closeItinPlaceModal();renderItinerary();
 }
-function openItinTransportModal(dayId,afterItemId){
-  itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;
-  document.getElementById('transport-duration').value='';
-  document.getElementById('transport-note').value='';
-  document.getElementById('transport-custom-mode').value='';
-  document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
-  const first=document.querySelector('.tm-opt');first.classList.add('selected');
-  selectedTransportIcon=first.dataset.icon;selectedTransportMode=first.dataset.mode;
+function openItinTransportModal(dayId,afterItemId,editItemId=null){
+  itinTargetDayId=dayId;itinInsertAfterItemId=afterItemId;_editingTransportItemId=editItemId;
+  if(editItemId){
+    const item=itineraryDays.find(d=>d.id===dayId)?.items.find(i=>i.id===editItemId);
+    if(item){
+      document.getElementById('transport-duration').value=item.duration||'';
+      document.getElementById('transport-note').value=item.note||'';
+      const preset=[...document.querySelectorAll('.tm-opt')].find(e=>e.dataset.mode===item.mode);
+      document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
+      if(preset){preset.classList.add('selected');selectedTransportIcon=preset.dataset.icon;selectedTransportMode=preset.dataset.mode;document.getElementById('transport-custom-mode').value='';}
+      else{document.getElementById('transport-custom-mode').value=(item.icon||'')+item.mode;selectedTransportIcon=item.icon||'🚌';selectedTransportMode=item.mode;}
+    }
+  } else {
+    document.getElementById('transport-duration').value='';
+    document.getElementById('transport-note').value='';
+    document.getElementById('transport-custom-mode').value='';
+    document.querySelectorAll('.tm-opt').forEach(e=>e.classList.remove('selected'));
+    const first=document.querySelector('.tm-opt');first.classList.add('selected');
+    selectedTransportIcon=first.dataset.icon;selectedTransportMode=first.dataset.mode;
+  }
   document.getElementById('itin-transport-modal').classList.add('active');
 }
 function closeItinTransportModal(){document.getElementById('itin-transport-modal').classList.remove('active');}
@@ -1209,11 +1223,17 @@ function saveTransportItem(){
     const m=custom.match(/^(\p{Emoji_Presentation}|\p{Emoji}️|\p{Emoji})/u);
     icon=m?m[0]:'🚌';mode=m?custom.slice(m[0].length).trim()||custom:custom;
   }
-  const newItem={id:'it'+Date.now(),type:'transport',icon,mode,
-    duration:document.getElementById('transport-duration').value.trim(),
-    note:document.getElementById('transport-note').value.trim()};
-  if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
-  else day.items.push(newItem);
+  const duration=document.getElementById('transport-duration').value.trim();
+  const note=document.getElementById('transport-note').value.trim();
+  if(_editingTransportItemId){
+    const it=day.items.find(i=>i.id===_editingTransportItemId);
+    if(it){it.icon=icon;it.mode=mode;it.duration=duration;it.note=note;}
+    _editingTransportItemId=null;
+  } else {
+    const newItem={id:'it'+Date.now(),type:'transport',icon,mode,duration,note};
+    if(itinInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===itinInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
+    else day.items.push(newItem);
+  }
   save();closeItinTransportModal();renderItinerary();
 }
 
@@ -1241,7 +1261,10 @@ function renderTlFlightItem(item,dayId){
       <textarea class="tl-note" placeholder="備註…" onchange="updateItinNote('${dayId}','${item.id}',this.value)" rows="1">${note}</textarea>
       <div class="tl-card-footer">
         <span class="tl-drag-handle" onpointerdown="startItemDrag(event,'${dayId}','${item.id}')" title="拖移排序">☰</span>
-        <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+        <div style="display:flex;gap:6px">
+          <button class="tl-btn-sm tl-btn-edit" onclick="openEditFlightModal('${dayId}','${item.id}')">✏ 編輯</button>
+          <button class="tl-btn-sm tl-btn-danger" onclick="removeItinItem('${dayId}','${item.id}')">✕ 移除</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1249,6 +1272,7 @@ function renderTlFlightItem(item,dayId){
 
 // ── Flight lookup ──
 let pendingFlightData=null,flightTargetDayId=null,flightInsertAfterItemId=null;
+let _editingTransportItemId=null,_editingFlightItemId=null;
 function openFlightModal(dayId,afterItemId){
   flightTargetDayId=dayId;flightInsertAfterItemId=afterItemId;
   pendingFlightData=null;
@@ -1260,7 +1284,52 @@ function openFlightModal(dayId,afterItemId){
   document.getElementById('flight-key-reset-wrap').style.display=hasKey?'block':'none';
   document.getElementById('itin-flight-modal').classList.add('active');
 }
-function closeFlightModal(){document.getElementById('itin-flight-modal').classList.remove('active');}
+function closeFlightModal(){document.getElementById('itin-flight-modal').classList.remove('active');_editingFlightItemId=null;}
+function openEditFlightModal(dayId,itemId){
+  flightTargetDayId=dayId;flightInsertAfterItemId=null;_editingFlightItemId=itemId;
+  const item=itineraryDays.find(d=>d.id===dayId)?.items.find(i=>i.id===itemId);
+  if(!item)return;
+  document.getElementById('flight-number-input').value=item.flightNumber||'';
+  document.getElementById('flight-api-setup').style.display='none';
+  document.getElementById('flight-key-reset-wrap').style.display='none';
+  document.getElementById('flight-preview-area').innerHTML=`
+    <div class="flight-preview-box" style="display:flex;flex-direction:column;gap:8px;padding:10px 0 4px">
+      <div style="display:flex;gap:6px">
+        <div style="flex:1"><div class="modal-label" style="font-size:10px;margin-bottom:3px">出發機場 IATA</div><input class="modal-input" id="fe-depAirport" value="${(item.depAirport||'').replace(/"/g,'&quot;')}"></div>
+        <div style="flex:1.4"><div class="modal-label" style="font-size:10px;margin-bottom:3px">出發城市</div><input class="modal-input" id="fe-depCity" value="${(item.depCity||'').replace(/"/g,'&quot;')}"></div>
+        <div style="width:72px"><div class="modal-label" style="font-size:10px;margin-bottom:3px">出發時間</div><input class="modal-input" id="fe-depTime" value="${item.depTime||''}" placeholder="HH:MM"></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1"><div class="modal-label" style="font-size:10px;margin-bottom:3px">抵達機場 IATA</div><input class="modal-input" id="fe-arrAirport" value="${(item.arrAirport||'').replace(/"/g,'&quot;')}"></div>
+        <div style="flex:1.4"><div class="modal-label" style="font-size:10px;margin-bottom:3px">抵達城市</div><input class="modal-input" id="fe-arrCity" value="${(item.arrCity||'').replace(/"/g,'&quot;')}"></div>
+        <div style="width:72px"><div class="modal-label" style="font-size:10px;margin-bottom:3px">抵達時間</div><input class="modal-input" id="fe-arrTime" value="${item.arrTime||''}" placeholder="HH:MM"></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1"><div class="modal-label" style="font-size:10px;margin-bottom:3px">航空公司</div><input class="modal-input" id="fe-airline" value="${(item.airline||'').replace(/"/g,'&quot;')}"></div>
+        <div style="flex:1"><div class="modal-label" style="font-size:10px;margin-bottom:3px">機型（選填）</div><input class="modal-input" id="fe-aircraft" value="${(item.aircraft||'').replace(/"/g,'&quot;')}"></div>
+      </div>
+    </div>`;
+  const btn=document.getElementById('flight-action-btn');
+  btn.textContent='儲存修改';btn.disabled=false;btn.onclick=confirmEditFlight;
+  document.getElementById('itin-flight-modal').classList.add('active');
+}
+function confirmEditFlight(){
+  const day=itineraryDays.find(d=>d.id===flightTargetDayId);
+  const item=day?.items.find(i=>i.id===_editingFlightItemId);
+  if(!item)return;
+  const fn=document.getElementById('flight-number-input').value.trim().toUpperCase();
+  if(fn)item.flightNumber=fn;
+  item.depAirport=document.getElementById('fe-depAirport').value.trim();
+  item.depCity=document.getElementById('fe-depCity').value.trim();
+  item.depTime=document.getElementById('fe-depTime').value.trim();
+  item.arrAirport=document.getElementById('fe-arrAirport').value.trim();
+  item.arrCity=document.getElementById('fe-arrCity').value.trim();
+  item.arrTime=document.getElementById('fe-arrTime').value.trim();
+  item.airline=document.getElementById('fe-airline').value.trim();
+  item.aircraft=document.getElementById('fe-aircraft').value.trim();
+  _editingFlightItemId=null;
+  save();closeFlightModal();renderItinerary();
+}
 function saveFlightApiKey(){
   const k=document.getElementById('rapidapi-key-input').value.trim();if(!k)return;
   localStorage.setItem('aerodbKey',k);
