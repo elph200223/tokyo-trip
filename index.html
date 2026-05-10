@@ -110,6 +110,8 @@
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1.5px solid var(--border);z-index:299;display:flex;box-shadow:0 -2px 12px rgba(0,0,0,.06);}
   .bn-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-family:'Zen Kaku Gothic New',sans-serif;transition:color .15s;}
   .bn-btn.active{color:var(--accent);}
+  .bn-btn-sm{flex:.55;border-left:1px solid var(--border);}
+  .bn-btn-sm .bn-label{font-size:9px;}
   .bn-icon{font-size:22px;line-height:1;}
   .bn-label{font-size:10px;font-weight:700;letter-spacing:.04em;}
   #itin-section{display:none;position:fixed;top:var(--header-h);left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 24px;background:var(--bg);z-index:200;}
@@ -335,7 +337,7 @@
   <button class="bn-btn" data-section="itinerary" onclick="switchMainSection('itinerary')">
     <span class="bn-label">行程</span>
   </button>
-  <button class="bn-btn" data-section="ledger" onclick="switchMainSection('ledger')">
+  <button class="bn-btn bn-btn-sm" data-section="ledger" onclick="switchMainSection('ledger')">
     <span class="bn-label">帳本</span>
   </button>
 </nav>
