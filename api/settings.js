@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 
-const KEYS = ['card_a_name', 'card_b_name', 'card_shared_name', 'card_a_last4', 'card_b_last4'];
-const DEFAULTS = { card_a_name: '卡片A', card_b_name: '卡片B', card_shared_name: '公共', card_a_last4: '', card_b_last4: '' };
+const KEYS = ['card_a_name', 'card_b_name', 'card_shared_name', 'card_a_last4', 'card_b_last4', 'card_shared_last4'];
+const DEFAULTS = { card_a_name: '卡片A', card_b_name: '卡片B', card_shared_name: '公共', card_a_last4: '', card_b_last4: '', card_shared_last4: '' };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

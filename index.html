@@ -241,6 +241,10 @@
   .ldg-day-date{font-size:12px;font-weight:700;color:var(--text);}
   .ldg-day-subtotal{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);}
   .ldg-expense-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .ldg-row-actions{display:flex;gap:2px;flex-shrink:0;}
+  .ldg-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;color:#ccc;transition:all .12s;line-height:1;}
+  .ldg-btn-edit:hover{color:var(--accent2);background:#f5ede6;}
+  .ldg-btn-del:hover{color:#d05030;background:#fff5f2;}
   .ldg-merchant{font-size:13px;font-weight:700;color:var(--text);}
   .ldg-cat{font-size:10px;color:var(--text-muted);margin-top:1px;}
   .ldg-amount{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;}
@@ -331,9 +335,56 @@
       <div class="modal-label">公共卡名稱</div>
       <input class="modal-input" id="ldg-name-shared" placeholder="公共">
     </div>
+    <div class="modal-field">
+      <div class="modal-label">公共卡後四碼</div>
+      <input class="modal-input" id="ldg-last4-shared" placeholder="9012" maxlength="4" inputmode="numeric">
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeLedgerSettings()">取消</button>
       <button class="btn btn-primary" onclick="saveLedgerSettings()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Expense Modal -->
+<div class="modal-overlay" id="ldg-edit-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">✏ 編輯消費</div>
+    <div class="modal-field">
+      <div class="modal-label">商家</div>
+      <input class="modal-input" id="ldg-edit-merchant">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">日期</div>
+      <input class="modal-input" id="ldg-edit-date" type="date">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">金額（JPY）</div>
+      <input class="modal-input" id="ldg-edit-amount" type="number" inputmode="numeric" min="0">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">分類</div>
+      <select class="modal-select" id="ldg-edit-category">
+        <option>餐飲</option><option>交通</option><option>購物</option><option>住宿</option>
+        <option>咖啡</option><option>超商</option><option>藥妝</option><option>伴手禮</option>
+        <option>門票</option><option>其他</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">卡片</div>
+      <select class="modal-select" id="ldg-edit-card">
+        <option value="card_a" id="ldg-edit-card-a-opt">卡片A</option>
+        <option value="card_b" id="ldg-edit-card-b-opt">卡片B</option>
+        <option value="shared" id="ldg-edit-card-shared-opt">公共</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">備註</div>
+      <input class="modal-input" id="ldg-edit-note">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeLedgerEdit()">取消</button>
+      <button class="btn btn-primary" onclick="saveLedgerEdit()">儲存</button>
     </div>
   </div>
 </div>
@@ -1769,6 +1820,10 @@ function renderLedger(){
         </div>
         <div class="ldg-amount">${fmtJpy(e.amount_jpy)}</div>
         <div class="ldg-badge ${bc}">${nm}</div>
+        <div class="ldg-row-actions">
+          <button class="ldg-btn ldg-btn-edit" onclick="openLedgerEdit(${e.id})" title="編輯">✏</button>
+          <button class="ldg-btn ldg-btn-del" onclick="deleteLedgerExpense(${e.id})" title="刪除">✕</button>
+        </div>
       </div>`;
     }
     html+=`</div>`;
@@ -1783,6 +1838,7 @@ function openLedgerSettings(){
   document.getElementById('ldg-name-b').value=s.card_b_name||'';
   document.getElementById('ldg-last4-b').value=s.card_b_last4||'';
   document.getElementById('ldg-name-shared').value=s.card_shared_name||'';
+  document.getElementById('ldg-last4-shared').value=s.card_shared_last4||'';
   document.getElementById('ldg-settings-modal').classList.add('active');
 }
 function closeLedgerSettings(){document.getElementById('ldg-settings-modal').classList.remove('active');}
@@ -1793,6 +1849,7 @@ async function saveLedgerSettings(){
     card_b_name:document.getElementById('ldg-name-b').value.trim()||'卡片B',
     card_b_last4:document.getElementById('ldg-last4-b').value.trim().replace(/\D/g,'').slice(-4),
     card_shared_name:document.getElementById('ldg-name-shared').value.trim()||'公共',
+    card_shared_last4:document.getElementById('ldg-last4-shared').value.trim().replace(/\D/g,'').slice(-4),
   };
   try{
     const r=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -1801,6 +1858,55 @@ async function saveLedgerSettings(){
     closeLedgerSettings();
     renderLedger();
   }catch(e){alert('儲存失敗，請稍後再試');}
+}
+
+// ── Edit / Delete expense ──
+let _editingExpenseId=null;
+
+function openLedgerEdit(id){
+  const e=ledgerExpenses.find(x=>x.id===id);
+  if(!e)return;
+  _editingExpenseId=id;
+  const s=ledgerSettings;
+  document.getElementById('ldg-edit-card-a-opt').textContent=s.card_a_name||'卡片A';
+  document.getElementById('ldg-edit-card-b-opt').textContent=s.card_b_name||'卡片B';
+  document.getElementById('ldg-edit-card-shared-opt').textContent=s.card_shared_name||'公共';
+  document.getElementById('ldg-edit-merchant').value=e.merchant||'';
+  document.getElementById('ldg-edit-date').value=(e.expense_date||'').slice(0,10);
+  document.getElementById('ldg-edit-amount').value=e.amount_jpy||'';
+  document.getElementById('ldg-edit-category').value=e.category||'其他';
+  document.getElementById('ldg-edit-card').value=e.card||'shared';
+  document.getElementById('ldg-edit-note').value=e.note||'';
+  document.getElementById('ldg-edit-modal').classList.add('active');
+}
+function closeLedgerEdit(){
+  _editingExpenseId=null;
+  document.getElementById('ldg-edit-modal').classList.remove('active');
+}
+async function saveLedgerEdit(){
+  if(!_editingExpenseId)return;
+  const body={
+    merchant:document.getElementById('ldg-edit-merchant').value.trim(),
+    expense_date:document.getElementById('ldg-edit-date').value,
+    amount_jpy:Number(document.getElementById('ldg-edit-amount').value),
+    category:document.getElementById('ldg-edit-category').value,
+    card:document.getElementById('ldg-edit-card').value,
+    note:document.getElementById('ldg-edit-note').value.trim(),
+  };
+  try{
+    const r=await fetch(`/api/expenses?id=${_editingExpenseId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(r.status);
+    closeLedgerEdit();
+    await loadLedger();
+  }catch(e){alert('儲存失敗，請稍後再試');}
+}
+async function deleteLedgerExpense(id){
+  if(!confirm('確定刪除這筆消費？'))return;
+  try{
+    const r=await fetch(`/api/expenses?id=${id}`,{method:'DELETE'});
+    if(!r.ok)throw new Error(r.status);
+    await loadLedger();
+  }catch(e){alert('刪除失敗，請稍後再試');}
 }
 
 renderAll();
