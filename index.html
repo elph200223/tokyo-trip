@@ -221,6 +221,34 @@
   .sync-token-display{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;word-break:break-all;color:var(--text);line-height:1.6;}
   .sync-row{display:flex;gap:8px;align-items:stretch;}
   .sync-row .modal-input{flex:1;margin:0;}
+  /* ── Ledger ── */
+  #ledger-section{display:none;position:fixed;top:var(--header-h);left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 24px;background:var(--bg);z-index:200;}
+  #ledger-section.active{display:block;}
+  .ldg-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .ldg-title{font-size:15px;font-weight:900;color:var(--accent);}
+  .ldg-settings-btn{background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:4px 6px;border-radius:6px;transition:all .12s;}
+  .ldg-settings-btn:hover{color:var(--accent);background:#f0ebe3;}
+  .ldg-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px;}
+  .ldg-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 8px 12px;text-align:center;}
+  .ldg-card-name{font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:6px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ldg-card-jpy{font-size:14px;font-weight:900;color:var(--text);font-family:'DM Mono',monospace;line-height:1.1;}
+  .ldg-card-twd{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-top:2px;}
+  .ldg-card-note{font-size:9px;color:#aaa;margin-top:3px;}
+  .ldg-day-group{margin-bottom:20px;}
+  .ldg-day-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .ldg-day-date{font-size:12px;font-weight:700;color:var(--text);}
+  .ldg-day-subtotal{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);}
+  .ldg-expense-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .ldg-merchant{font-size:13px;font-weight:700;color:var(--text);}
+  .ldg-cat{font-size:10px;color:var(--text-muted);margin-top:1px;}
+  .ldg-amount{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;}
+  .ldg-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+  .ldg-badge-a{background:#e8f0ff;color:#3a5fcc;border:1px solid #b8ccf0;}
+  .ldg-badge-b{background:#f3e8ff;color:#7a3acc;border:1px solid #d0b8f0;}
+  .ldg-badge-shared{background:#e8f5ee;color:#3a7a50;border:1px solid #a0d8b0;}
+  .ldg-empty{text-align:center;padding:48px 20px;color:var(--text-muted);font-size:13px;line-height:2;}
+  .ldg-empty-icon{font-size:36px;margin-bottom:8px;}
+  .ldg-loading{text-align:center;padding:32px;color:var(--text-muted);font-size:12px;}
 </style>
 </head>
 <body>
@@ -268,12 +296,47 @@
   <div id="itin-day-content"></div>
 </div>
 
+<div id="ledger-section">
+  <div class="ldg-topbar">
+    <div class="ldg-title">帳本</div>
+    <button class="ldg-settings-btn" onclick="openLedgerSettings()" title="設定卡片名稱">⚙</button>
+  </div>
+  <div id="ldg-summary"></div>
+  <div id="ldg-list"></div>
+</div>
+
+<!-- Ledger Settings Modal -->
+<div class="modal-overlay" id="ldg-settings-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">⚙ 卡片名稱設定</div>
+    <div class="modal-field">
+      <div class="modal-label">卡片 A 名稱</div>
+      <input class="modal-input" id="ldg-name-a" placeholder="卡片A">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">卡片 B 名稱</div>
+      <input class="modal-input" id="ldg-name-b" placeholder="卡片B">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">公共卡名稱</div>
+      <input class="modal-input" id="ldg-name-shared" placeholder="公共">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeLedgerSettings()">取消</button>
+      <button class="btn btn-primary" onclick="saveLedgerSettings()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <button class="bn-btn active" data-section="places" onclick="switchMainSection('places')">
     <span class="bn-label">景點</span>
   </button>
   <button class="bn-btn" data-section="itinerary" onclick="switchMainSection('itinerary')">
     <span class="bn-label">行程</span>
+  </button>
+  <button class="bn-btn" data-section="ledger" onclick="switchMainSection('ledger')">
+    <span class="bn-label">帳本</span>
   </button>
 </nav>
 
@@ -742,12 +805,16 @@ function switchMainSection(section){
   mainSection=section;
   document.querySelectorAll('.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
   const isPlaces=section==='places';
+  const isItinerary=section==='itinerary';
+  const isLedger=section==='ledger';
   document.getElementById('tabs-bar').style.display=isPlaces?'':'none';
   document.getElementById('panel-map').classList.toggle('active',isPlaces&&currentTab==='map');
   document.getElementById('list-content').classList.toggle('active',isPlaces&&currentTab!=='map');
-  document.getElementById('itin-section').classList.toggle('active',!isPlaces);
+  document.getElementById('itin-section').classList.toggle('active',isItinerary);
+  document.getElementById('ledger-section').classList.toggle('active',isLedger);
   document.querySelector('.fab').style.display=isPlaces?'':'none';
-  if(!isPlaces)renderItinerary();
+  if(isItinerary)renderItinerary();
+  if(isLedger)loadLedger();
 }
 
 // ── Cards & categories ──
@@ -1587,6 +1654,139 @@ function confirmAddFlight(){
   if(flightInsertAfterItemId){const idx=day.items.findIndex(i=>i.id===flightInsertAfterItemId);day.items.splice(idx+1,0,newItem);}
   else day.items.push(newItem);
   save();closeFlightModal();renderItinerary();
+}
+
+// ── Ledger ──
+let ledgerExpenses=[], ledgerSettings={card_a_name:'卡片A',card_b_name:'卡片B',card_shared_name:'公共'};
+
+async function loadLedger(){
+  document.getElementById('ldg-summary').innerHTML='<div class="ldg-loading">載入中...</div>';
+  document.getElementById('ldg-list').innerHTML='';
+  try{
+    const [exRes,stRes]=await Promise.all([fetch('/api/expenses'),fetch('/api/settings')]);
+    ledgerExpenses=exRes.ok?(await exRes.json()).expenses||[]:[];
+    if(stRes.ok)ledgerSettings=await stRes.json();
+  }catch(e){
+    document.getElementById('ldg-summary').innerHTML='<div class="ldg-empty"><div class="ldg-empty-icon">⚠️</div>載入失敗，請檢查網路</div>';
+    return;
+  }
+  renderLedger();
+}
+
+function fmtJpy(n){return'¥'+Math.round(n).toLocaleString();}
+function fmtTwd(n){return'NT$'+Math.round(n).toLocaleString();}
+
+function renderLedger(){
+  const expenses=ledgerExpenses;
+  const s=ledgerSettings;
+  const names={card_a:s.card_a_name||'卡片A',card_b:s.card_b_name||'卡片B',shared:s.card_shared_name||'公共'};
+
+  let sumAJpy=0,sumBJpy=0,sumSharedJpy=0;
+  let sumATwd=0,sumBTwd=0,sumSharedTwd=0;
+  let lastFx=0.22;
+  for(const e of expenses){
+    const jpy=Number(e.amount_jpy)||0;
+    const twd=Number(e.amount_twd)||0;
+    if(Number(e.fx_rate))lastFx=Number(e.fx_rate);
+    if(e.card==='card_a'){sumAJpy+=jpy;sumATwd+=twd;}
+    else if(e.card==='card_b'){sumBJpy+=jpy;sumBTwd+=twd;}
+    else{sumSharedJpy+=jpy;sumSharedTwd+=twd;}
+  }
+  const totalAJpy=sumAJpy+sumSharedJpy/2, totalBJpy=sumBJpy+sumSharedJpy/2;
+  const totalATwd=sumATwd+sumSharedTwd/2, totalBTwd=sumBTwd+sumSharedTwd/2;
+  const totalJpy=sumAJpy+sumBJpy+sumSharedJpy;
+  const totalTwd=sumATwd+sumBTwd+sumSharedTwd;
+  const hasShared=sumSharedJpy>0;
+
+  document.getElementById('ldg-summary').innerHTML=`
+    <div class="ldg-summary">
+      <div class="ldg-card">
+        <div class="ldg-card-name">${names.card_a}</div>
+        <div class="ldg-card-jpy">${fmtJpy(totalAJpy)}</div>
+        <div class="ldg-card-twd">${fmtTwd(totalATwd)}</div>
+        ${hasShared?'<div class="ldg-card-note">含公共½</div>':''}
+      </div>
+      <div class="ldg-card">
+        <div class="ldg-card-name">${names.card_b}</div>
+        <div class="ldg-card-jpy">${fmtJpy(totalBJpy)}</div>
+        <div class="ldg-card-twd">${fmtTwd(totalBTwd)}</div>
+        ${hasShared?'<div class="ldg-card-note">含公共½</div>':''}
+      </div>
+      <div class="ldg-card">
+        <div class="ldg-card-name">總計</div>
+        <div class="ldg-card-jpy">${fmtJpy(totalJpy)}</div>
+        <div class="ldg-card-twd">${fmtTwd(totalTwd)}</div>
+      </div>
+    </div>`;
+
+  if(expenses.length===0){
+    document.getElementById('ldg-list').innerHTML='<div class="ldg-empty"><div class="ldg-empty-icon">🧾</div>還沒有消費記錄<br>用 iPhone 捷徑拍收據後就會出現在這裡</div>';
+    return;
+  }
+
+  const groups={};
+  for(const e of expenses){
+    const d=(e.expense_date||'').slice(0,10);
+    if(!groups[d])groups[d]=[];
+    groups[d].push(e);
+  }
+  const dateLabel=d=>{
+    if(!d)return'日期未知';
+    const dt=new Date(d+'T00:00:00');
+    const w=['日','一','二','三','四','五','六'][dt.getDay()];
+    return`${dt.getMonth()+1}/${dt.getDate()} (${w})`;
+  };
+  const badgeCls={card_a:'ldg-badge-a',card_b:'ldg-badge-b',shared:'ldg-badge-shared'};
+
+  let html='';
+  for(const date of Object.keys(groups)){
+    const rows=groups[date];
+    const dayTotal=rows.reduce((s,e)=>s+Number(e.amount_jpy||0),0);
+    html+=`<div class="ldg-day-group">
+      <div class="ldg-day-header">
+        <div class="ldg-day-date">${dateLabel(date)}</div>
+        <div class="ldg-day-subtotal">小計 ${fmtJpy(dayTotal)}</div>
+      </div>`;
+    for(const e of rows){
+      const card=e.card||'shared';
+      const nm=names[card]||card;
+      const bc=badgeCls[card]||'ldg-badge-shared';
+      const sub=[e.category,e.payment_method].filter(Boolean).join(' · ');
+      html+=`<div class="ldg-expense-row">
+        <div style="flex:1;min-width:0">
+          <div class="ldg-merchant">${e.merchant||'─'}</div>
+          ${sub?`<div class="ldg-cat">${sub}</div>`:''}
+        </div>
+        <div class="ldg-amount">${fmtJpy(e.amount_jpy)}</div>
+        <div class="ldg-badge ${bc}">${nm}</div>
+      </div>`;
+    }
+    html+=`</div>`;
+  }
+  document.getElementById('ldg-list').innerHTML=html;
+}
+
+function openLedgerSettings(){
+  const s=ledgerSettings;
+  document.getElementById('ldg-name-a').value=s.card_a_name||'';
+  document.getElementById('ldg-name-b').value=s.card_b_name||'';
+  document.getElementById('ldg-name-shared').value=s.card_shared_name||'';
+  document.getElementById('ldg-settings-modal').classList.add('active');
+}
+function closeLedgerSettings(){document.getElementById('ldg-settings-modal').classList.remove('active');}
+async function saveLedgerSettings(){
+  const body={
+    card_a_name:document.getElementById('ldg-name-a').value.trim()||'卡片A',
+    card_b_name:document.getElementById('ldg-name-b').value.trim()||'卡片B',
+    card_shared_name:document.getElementById('ldg-name-shared').value.trim()||'公共',
+  };
+  try{
+    const r=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(r.status);
+    ledgerSettings={...ledgerSettings,...body};
+    closeLedgerSettings();
+    renderLedger();
+  }catch(e){alert('儲存失敗，請稍後再試');}
 }
 
 renderAll();
