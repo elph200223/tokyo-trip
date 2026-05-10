@@ -310,14 +310,22 @@
 <!-- Ledger Settings Modal -->
 <div class="modal-overlay" id="ldg-settings-modal">
   <div class="modal-sheet">
-    <div class="modal-title">⚙ 卡片名稱設定</div>
+    <div class="modal-title">⚙ 卡片設定</div>
     <div class="modal-field">
       <div class="modal-label">卡片 A 名稱</div>
       <input class="modal-input" id="ldg-name-a" placeholder="卡片A">
     </div>
     <div class="modal-field">
+      <div class="modal-label">卡片 A 後四碼</div>
+      <input class="modal-input" id="ldg-last4-a" placeholder="1234" maxlength="4" inputmode="numeric">
+    </div>
+    <div class="modal-field">
       <div class="modal-label">卡片 B 名稱</div>
       <input class="modal-input" id="ldg-name-b" placeholder="卡片B">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">卡片 B 後四碼</div>
+      <input class="modal-input" id="ldg-last4-b" placeholder="5678" maxlength="4" inputmode="numeric">
     </div>
     <div class="modal-field">
       <div class="modal-label">公共卡名稱</div>
@@ -1771,7 +1779,9 @@ function renderLedger(){
 function openLedgerSettings(){
   const s=ledgerSettings;
   document.getElementById('ldg-name-a').value=s.card_a_name||'';
+  document.getElementById('ldg-last4-a').value=s.card_a_last4||'';
   document.getElementById('ldg-name-b').value=s.card_b_name||'';
+  document.getElementById('ldg-last4-b').value=s.card_b_last4||'';
   document.getElementById('ldg-name-shared').value=s.card_shared_name||'';
   document.getElementById('ldg-settings-modal').classList.add('active');
 }
@@ -1779,7 +1789,9 @@ function closeLedgerSettings(){document.getElementById('ldg-settings-modal').cla
 async function saveLedgerSettings(){
   const body={
     card_a_name:document.getElementById('ldg-name-a').value.trim()||'卡片A',
+    card_a_last4:document.getElementById('ldg-last4-a').value.trim().replace(/\D/g,'').slice(-4),
     card_b_name:document.getElementById('ldg-name-b').value.trim()||'卡片B',
+    card_b_last4:document.getElementById('ldg-last4-b').value.trim().replace(/\D/g,'').slice(-4),
     card_shared_name:document.getElementById('ldg-name-shared').value.trim()||'公共',
   };
   try{

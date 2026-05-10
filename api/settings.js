@@ -1,5 +1,8 @@
 import { neon } from '@neondatabase/serverless';
 
+const KEYS = ['card_a_name', 'card_b_name', 'card_shared_name', 'card_a_last4', 'card_b_last4'];
+const DEFAULTS = { card_a_name: '卡片A', card_b_name: '卡片B', card_shared_name: '公共', card_a_last4: '', card_b_last4: '' };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,OPTIONS');
@@ -9,17 +12,16 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   if (req.method === 'GET') {
-    const rows = await sql`SELECT key, value FROM settings WHERE key IN ('card_a_name','card_b_name','card_shared_name')`;
-    const out = { card_a_name: '卡片A', card_b_name: '卡片B', card_shared_name: '公共' };
+    const rows = await sql`SELECT key, value FROM settings WHERE key = ANY(${KEYS})`;
+    const out = { ...DEFAULTS };
     for (const row of rows) out[row.key] = row.value;
     return res.json(out);
   }
 
   if (req.method === 'PUT') {
-    const allowed = ['card_a_name', 'card_b_name', 'card_shared_name'];
-    for (const key of allowed) {
+    for (const key of KEYS) {
       const val = req.body?.[key];
-      if (typeof val === 'string' && val.trim()) {
+      if (typeof val === 'string') {
         await sql`
           INSERT INTO settings (key, value) VALUES (${key}, ${val.trim()})
           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
