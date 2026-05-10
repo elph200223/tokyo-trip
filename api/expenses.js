@@ -2,7 +2,7 @@ import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -17,6 +17,23 @@ export default async function handler(req, res) {
       ORDER BY expense_date DESC, id DESC
     `;
     return res.json({ expenses: rows });
+  }
+
+  if (req.method === 'POST') {
+    const { merchant, amount_jpy, expense_date, category, card, note, payment_method } = req.body || {};
+    if (!merchant || !amount_jpy || !expense_date) return res.status(400).json({ error: 'missing required fields' });
+    const fxRate = Number(process.env.JPY_TO_TWD_RATE) || 0.22;
+    const jpy = Math.round(Number(amount_jpy));
+    const twd = Math.round(jpy * fxRate);
+    const [row] = await sql`
+      INSERT INTO expenses
+        (expense_date, merchant, amount_jpy, fx_rate, amount_twd, category, payment_method, card, note, source)
+      VALUES
+        (${expense_date}::date, ${merchant}, ${jpy}, ${fxRate}, ${twd},
+         ${category || '其他'}, ${payment_method || ''}, ${card || 'shared'}, ${note || ''}, 'manual')
+      RETURNING id
+    `;
+    return res.json({ ok: true, id: row.id });
   }
 
   if (req.method === 'PUT') {

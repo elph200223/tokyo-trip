@@ -305,7 +305,10 @@
 <div id="ledger-section">
   <div class="ldg-topbar">
     <div class="ldg-title">帳本</div>
-    <button class="ldg-settings-btn" onclick="openLedgerSettings()" title="設定卡片名稱">⚙</button>
+    <div style="display:flex;gap:6px">
+      <button class="ldg-settings-btn" onclick="openLedgerNew()" title="手動新增">＋</button>
+      <button class="ldg-settings-btn" onclick="openLedgerSettings()" title="設定卡片名稱">⚙</button>
+    </div>
   </div>
   <div id="ldg-summary"></div>
   <div id="ldg-list"></div>
@@ -1860,9 +1863,27 @@ async function saveLedgerSettings(){
   }catch(e){alert('儲存失敗，請稍後再試');}
 }
 
-// ── Edit / Delete expense ──
+// ── Add / Edit / Delete expense ──
 let _editingExpenseId=null;
 
+function _openEditModal(title){
+  const s=ledgerSettings;
+  document.getElementById('ldg-edit-modal').querySelector('.modal-title').textContent=title;
+  document.getElementById('ldg-edit-card-a-opt').textContent=s.card_a_name||'卡片A';
+  document.getElementById('ldg-edit-card-b-opt').textContent=s.card_b_name||'卡片B';
+  document.getElementById('ldg-edit-card-shared-opt').textContent=s.card_shared_name||'公共';
+  document.getElementById('ldg-edit-modal').classList.add('active');
+}
+function openLedgerNew(){
+  _editingExpenseId=null;
+  document.getElementById('ldg-edit-merchant').value='';
+  document.getElementById('ldg-edit-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('ldg-edit-amount').value='';
+  document.getElementById('ldg-edit-category').value='其他';
+  document.getElementById('ldg-edit-card').value='shared';
+  document.getElementById('ldg-edit-note').value='';
+  _openEditModal('＋ 新增消費');
+}
 function openLedgerEdit(id){
   const e=ledgerExpenses.find(x=>x.id===id);
   if(!e)return;
@@ -1877,14 +1898,13 @@ function openLedgerEdit(id){
   document.getElementById('ldg-edit-category').value=e.category||'其他';
   document.getElementById('ldg-edit-card').value=e.card||'shared';
   document.getElementById('ldg-edit-note').value=e.note||'';
-  document.getElementById('ldg-edit-modal').classList.add('active');
+  _openEditModal('✏ 編輯消費');
 }
 function closeLedgerEdit(){
   _editingExpenseId=null;
   document.getElementById('ldg-edit-modal').classList.remove('active');
 }
 async function saveLedgerEdit(){
-  if(!_editingExpenseId)return;
   const body={
     merchant:document.getElementById('ldg-edit-merchant').value.trim(),
     expense_date:document.getElementById('ldg-edit-date').value,
@@ -1893,8 +1913,11 @@ async function saveLedgerEdit(){
     card:document.getElementById('ldg-edit-card').value,
     note:document.getElementById('ldg-edit-note').value.trim(),
   };
+  if(!body.merchant||!body.amount_jpy||!body.expense_date){alert('商家、日期、金額為必填');return;}
   try{
-    const r=await fetch(`/api/expenses?id=${_editingExpenseId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const url=_editingExpenseId?`/api/expenses?id=${_editingExpenseId}`:'/api/expenses';
+    const method=_editingExpenseId?'PUT':'POST';
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok)throw new Error(r.status);
     closeLedgerEdit();
     await loadLedger();
